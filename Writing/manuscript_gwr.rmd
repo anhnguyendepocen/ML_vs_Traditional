@@ -1,5 +1,5 @@
 ---
-title: "Economic Evaluation of Geographically Weighted Regression Analysis for Site-specific Nitrogen Management"
+title: "New"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
