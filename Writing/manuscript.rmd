@@ -24,6 +24,7 @@ output:
        pre: "Table "
        sep: ": "
 bibliography: PA.bib
+csl: american-journal-of-agricultural-economics.csl
 abstract: ""
 ---
 

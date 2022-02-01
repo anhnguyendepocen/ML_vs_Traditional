@@ -38,14 +38,9 @@ library(here)
 setwd(here())
 
 #* source all the R functions in the Functions/R folder
-fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
+fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) %>%
   purrr::map(~ source(.))
 
-#* source all the python functions in the Functions/Python folder
-# source_python(here("Codes", "Functions", "Python"))
-# source_python(here("Codes", "Functions", "Python", "run_DML_OF.py"))
-# source_python(here("Codes", "Functions", "Python", "run_DR_OF.py"))
-# source_python(here("Codes", "Functions", "Python", "run_DML_OF_c.py"))
 ```
 
 # Simulation Analysis
@@ -54,7 +49,7 @@ fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
 #-----------------------------------------
 # need to update the looping codes later
 profit_ls <- list()
-sce_i <-  3
+sce_i <- 3
 #-----------------------------------------
 ```
 
@@ -64,18 +59,19 @@ sce_i <-  3
 
 #* Read field data
 field_data <-
-  readRDS(here("Data/field_data.rds")) %>% .[sce_i, ] %>% 
+  readRDS(here("Shared/Data/field_data.rds")) %>%
+  .[sce_i, ] %>%
   pull(field_sf) %>%
   .[[1]]
 
 #* Read field parameters
-field_parameters <- readRDS(here("Data/field_parameters.rds")) %>% .[sce_i, ]
+field_parameters <- readRDS(here("Shared/Data/field_parameters.rds")) %>% .[sce_i, ]
 
 #* number of simulation cases
 nsim <- field_parameters$field_pars[[1]][, max(sim)]
 
 #* Read field data
-field_with_design <- readRDS(here("Data/field_with_design.rds")) %>% .[sce_i, ]
+field_with_design <- readRDS(here("Shared/Data/field_with_design.rds")) %>% .[sce_i, ]
 
 #* Read the simulated data
 sim_data <-
@@ -84,23 +80,23 @@ sim_data <-
 
 #* Build spatial weights matrix
 # Wls <- readRDS(file = here("Data", "Wls.rds"))
-# 
+#
 #
 #   #*****************************************************************************
 # this part should be added to the data preparation codes, and saved in field_data
-  dt <- sim_data$reg_data[[1]][sim == 1, ]$data[[1]]
-  D <- matrix(NA, nrow(dt), nrow(dt))             # distance matrix
-  for (i in 1:nrow(dt)){
-      for(j in 1:nrow(dt)){
-          D[i,j] <- sqrt((dt$X[i] - dt$X[j])^2+
-                             (dt$Y[i] - dt$Y[j])^2 )
-      }
+dt <- sim_data$reg_data[[1]][sim == 1, ]$data[[1]]
+D <- matrix(NA, nrow(dt), nrow(dt)) # distance matrix
+for (i in 1:nrow(dt)) {
+  for (j in 1:nrow(dt)) {
+    D[i, j] <- sqrt((dt$X[i] - dt$X[j])^2 +
+      (dt$Y[i] - dt$Y[j])^2)
   }
-  W <- 1/D^2             # inverse distance weights matrix
-  diag(W) <- 0
-  W <- W/rowSums(W)			    # row-standardize
-  Wls <- mat2listw(W)	            # "listw" object
-  saveRDS(Wls, file=here("Data","Wls.rds"))
+}
+W <- 1 / D^2 # inverse distance weights matrix
+diag(W) <- 0
+W <- W / rowSums(W) # row-standardize
+Wls <- mat2listw(W) # "listw" object
+saveRDS(Wls, file = here("Data", "Wls.rds"))
 #   #*****************************************************************************
 ```
 
@@ -221,19 +217,19 @@ x_vars <-
 
 control_vars <- paste0(x_vars, collapse = "+")
 int_vars <-
-    paste0(
-      paste0("I(N * ", x_vars, ")", collapse = "+"),
-      "+",
-      paste0("I(N2 * ", x_vars, ")", collapse = "+")
-    )
+  paste0(
+    paste0("I(N * ", x_vars, ")", collapse = "+"),
+    "+",
+    paste0("I(N2 * ", x_vars, ")", collapse = "+")
+  )
 
 feols_formula <-
-    paste0(
-      "yield ~ N + N2 + ",
-      control_vars, "+",
-      int_vars
-    ) %>%
-    formula()
+  paste0(
+    "yield ~ N + N2 + ",
+    control_vars, "+",
+    int_vars
+  ) %>%
+  formula()
 
 sim_range <- c(1:10)
 
