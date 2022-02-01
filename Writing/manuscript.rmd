@@ -24,11 +24,7 @@ output:
        pre: "Table "
        sep: ": "
 bibliography: PA.bib
-<<<<<<< HEAD:Writing/manuscript.rmd
 csl: american-journal-of-agricultural-economics.csl
-=======
-# csl: 
->>>>>>> updated files:Writing/manuscript_gwr.rmd
 abstract: ""
 ---
 
@@ -116,18 +112,18 @@ theme_update(
 #* source all the functions in the Functions folder
 # fs::dir_ls(here("Codes", "Functions"), full.names = TRUE) %>%
 #   lapply(., function(x) source(x))
-# 
+#
 # #* read the results rds file
 # results <-
 #   here("Results", "pi_data.rds") %>%
 #   readRDS() %>%
 #   .[, type := ifelse(transfer == 0, "GWR-R", "GWR-T")] %>%
 #   .[, bias := pi_diff_est - pi_diff]
-# 
+#
 # pi_dif_gwr <-
 #   results[, .(pi_dif = mean(pi_diff)), by = type] %>%
 #   .[, diff(pi_dif)]
-# 
+#
 # #* create figures
 # source(here("Codes", "3_make_figures_publication.R"))
 ```
