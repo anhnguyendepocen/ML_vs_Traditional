@@ -24,7 +24,11 @@ output:
        pre: "Table "
        sep: ": "
 bibliography: PA.bib
+<<<<<<< HEAD:Writing/manuscript.rmd
 csl: american-journal-of-agricultural-economics.csl
+=======
+# csl: 
+>>>>>>> updated files:Writing/manuscript_gwr.rmd
 abstract: ""
 ---
 
@@ -104,6 +108,7 @@ theme_update(
 )
 ```
 
+<<<<<<< HEAD:Writing/manuscript.rmd
 ```{r include = FALSE}
 # /*===========================================================
 #' # Prepare data and results for writing
@@ -127,6 +132,8 @@ theme_update(
 # source(here("Codes", "3_make_figures_publication.R"))
 ```
 
+=======
+>>>>>>> updated files:Writing/manuscript_gwr.rmd
 **Abstract**: 
  
 **Keywords**: 
@@ -136,6 +143,10 @@ theme_update(
 `r run_pagebreak()`
 
 # Introduction
+
++ Traditional vs ML (LM, SER better than RF and BRF)
++ Yield prediction vs EONR prediction
++ Statistical efficiency is money (SER vs LM) 
 
 # Methods 
 
