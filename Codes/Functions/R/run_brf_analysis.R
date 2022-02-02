@@ -59,7 +59,7 @@ run_brf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels) {
 
   N_seq <-
     data.table(
-      N = seq(min(data$N), max(data$N), by = 2)
+      N = seq(min(train_data$N), max(train_data$N), by = 2)
     )
 
   brf_results <-
