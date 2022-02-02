@@ -1,9 +1,9 @@
-# par_name <- "Nk"
-# 
-# 
+# par_name <- "Nk_1"
+# scaler <- 2
+# new_var_name <- "theta_NK_1"
+
 
 add_errors_to_par <- function(par_name, scaler, new_var_name, cell_data, nsim, xy, sp_range, gstat_model) {
-
   vars <- c(par_name, "sim", "cell_id")
 
   temp_data <-
@@ -21,9 +21,9 @@ add_errors_to_par <- function(par_name, scaler, new_var_name, cell_data, nsim, x
       nsim = nsim
     ) %>%
     # >>> normalize <<<
-    .[, min_temp_var := min(temp_var), by = sim] %>%
-    .[, max_temp_var := max(temp_var), by = sim] %>%
-    .[, error := scaler * (pnorm(temp_var, min_temp_var, max_temp_var) - 0.5)] %>%
+    .[, mean_temp_var := mean(temp_var), by = sim] %>%
+    .[, sd_temp_var := sd(temp_var), by = sim] %>%
+    .[, error := scaler * (pnorm(temp_var, mean = mean_temp_var, sd = sd_temp_var) - 0.5)] %>%
     .[temp_data, on = c("sim", "cell_id")] %>%
     .[, var_with_error := w_var * error] %>%
     .[, .(sim, cell_id, var_with_error)] %>%
