@@ -152,7 +152,7 @@ field_parameters <-
       sp_range = sp_range,
       gstat_model = gstat_model,
       field_sf = field_sf,
-      nsim = 1000
+      nsim = 10
     )
   ))
 

@@ -33,7 +33,7 @@ library(here)
 setwd(here())
 
 #* source all the R functions in the Functions/R folder
-fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
+fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) %>%
     purrr::map(~ source(.))
 
 
@@ -45,14 +45,14 @@ fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
 
 #* Read field data
 field_data <-
-    readRDS(here("Data/field_data.rds")) %>%
+    readRDS(here("Shared/Data/field_data.rds")) %>%
     pull(field_sf) 
 
 #* Read field parameters
-field_parameters <- readRDS(here("Data/field_parameters.rds"))
+field_parameters <- readRDS(here("Shared/Data/field_parameters.rds"))
 
 #* Read field data
-field_with_design <- readRDS(here("Data/field_with_design.rds"))
+field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
 
 
 
@@ -115,7 +115,7 @@ models_data <-
             "drof" # DR-OF
         ),
         on = c(
-            TRUE, # ser_50
+            FALSE, # ser_50
             FALSE, # ser_100
             FALSE, # ser_200
             FALSE, # ser_500
@@ -125,7 +125,7 @@ models_data <-
             FALSE, # gwr_zone_scam
             FALSE, # ma_cf
             TRUE, # brf
-            TRUE, # rf
+            FALSE, # rf
             FALSE, # dmlof_semi
             FALSE, # dmlof_quad
             FALSE # drof
@@ -238,7 +238,7 @@ for(sc_i in 1:nrow(field_with_design)){
     ## -----------------------
     
     #* how many simulations to run
-    sim_range <- c(201:300)
+    sim_range <- c(201:210)
     
     #* run pre-defined `run_analysis` function
     eonr_results <-
