@@ -165,3 +165,9 @@ theme_update(
 # References
 
 
+# Figures {-}
+
+```{r profits-boxplot-pool, fig.cap="Design: Randomized Block", echo=FALSE}
+#include_graphics(here('Graphs/profits_boxplot_pool.png'))
+```
+
