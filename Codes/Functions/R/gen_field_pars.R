@@ -30,7 +30,7 @@ gen_field_pars <- function(sp_range, gstat_model, field_sf, nsim) {
     .[, Nk := 100 + p * 150] %>%
     .[, c("cell_id", "sim", "Nk")]
 
-  # Nk_data$Nk %>% hist(breaks=40)
+  # Nk$Nk %>% hist(breaks=100)cell
   # rasterFromXYZ(Nk[sim==1, c("X","Y","Nk")]) %>% plot()
 
   # === ymax ===#
@@ -118,6 +118,7 @@ gen_field_pars <- function(sp_range, gstat_model, field_sf, nsim) {
     .[m_error_data, on = c("sim", "cell_id")] %>%
     .[N_error_data, on = c("sim", "cell_id")]
 
+
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Splitting parameters
   # /*+++++++++++++++++++++++++++++++++++
@@ -148,22 +149,18 @@ gen_field_pars <- function(sp_range, gstat_model, field_sf, nsim) {
   # /*+++++++++++++++++++++++++++++++++++
   cell_data <-
     cell_data %>%
-    .[, .(data = list(.SD)), by = sim] %>%
-    rowwise() %>%
-    #* create irrelevant variables
-    mutate(data = list(
-      mutate(
-        data,
-        theta_plateau_1 = faux::rnorm_pre(plateau, mu = 0, r = 0.4),
-        theta_plateau_2 = faux::rnorm_pre(plateau, mu = 0, r = 0.4),
-        theta_Nk_1 = faux::rnorm_pre(Nk, mu = 0, r = 0.4),
-        theta_Nk_2 = faux::rnorm_pre(Nk, mu = 0, r = 0.4),
-        theta_b0_1 = faux::rnorm_pre(b0, mu = 0, r = 0.4),
-        theta_b0_2 = faux::rnorm_pre(b0, mu = 0, r = 0.4)
-      )
-    )) %>%
-    unnest() %>%
-    data.table()
+    #* theta_plateau_1
+    add_errors_to_par("plateau_1", scaler = 1, "theta_plateau_1", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")] %>%
+    #* theta_plateau_2
+    add_errors_to_par("plateau_2", scaler = 2, "theta_plateau_2", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")] %>%
+    #* theta_Nk_1
+    add_errors_to_par("Nk_1", scaler = 1, "theta_Nk_1", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")] %>%
+    #* theta_Nk_2
+    add_errors_to_par("Nk_2", scaler = 2, "theta_Nk_2", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")] %>%
+    #* theta_b0_1
+    add_errors_to_par("b0_1", scaler = 1, "theta_b0_1", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")] %>%
+    #* theta_b0_2
+    add_errors_to_par("b0_2", scaler = 2, "theta_b0_2", ., nsim, xy, sp_range, gstat_model)[., on = c("sim", "cell_id")]
 
   return(cell_data)
 }
