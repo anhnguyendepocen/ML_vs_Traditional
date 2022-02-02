@@ -67,10 +67,10 @@ field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
 x_vars <-
     c(
         "b0_1", "b0_2",
-        "Nk_2_1", "Nk_2_2", "Nk_1_1",
-        # "Nk_2_1", "Nk_2_2", "Nk_1_1", "Nk_1_2",
-        "plateau_2_1", "plateau_2_2", "plateau_1_1",
-        # "plateau_2_1", "plateau_2_2", "plateau_1_1", "plateau_1_2",
+        # "Nk_2_1", "Nk_2_2", "Nk_1_1",
+        "Nk_2_1", "Nk_2_2", "Nk_1_1", "Nk_1_2",
+        # "plateau_2_1", "plateau_2_2", "plateau_1_1",
+        "plateau_2_1", "plateau_2_2", "plateau_1_1", "plateau_1_2",
         "theta_plateau_1", "theta_plateau_2",
         "theta_Nk_1", "theta_Nk_2",
         "theta_b0_1", "theta_b0_2"
@@ -117,7 +117,7 @@ models_data <-
             "drof" # DR-OF
         ),
         on = c(
-            FALSE, # ser_50
+            TRUE, # ser_50
             FALSE, # ser_100
             FALSE, # ser_200
             FALSE, # ser_500
@@ -126,8 +126,8 @@ models_data <-
             FALSE, # gwr_semi
             FALSE, # gwr_zone_scam
             FALSE, # ma_cf
-            FALSE, # brf
-            FALSE, # rf
+            TRUE, # brf
+            TRUE, # rf
             FALSE, # dmlof_semi
             FALSE, # dmlof_quad
             FALSE # drof
@@ -193,10 +193,8 @@ est_result_ls <- list()
 
 #*********************** loop over scenarios *********************#
 tic()
-# for(sc_i in 1:nrow(field_with_design)){
-for(sc_i in 2){
-    
-    
+for(sc_i in 1:nrow(field_with_design)){
+
     ## -----------
     ##    data  
     ## -----------
@@ -241,7 +239,7 @@ for(sc_i in 2){
     ## -----------------------
     
     #* how many simulations to run
-    sim_range <- c(21:50)
+    sim_range <- c(1:300)
     
     #* run pre-defined `run_analysis` function
     eonr_results <-
@@ -278,11 +276,11 @@ for(sc_i in 2){
             field_col = 
                 field_with_design$field_col[sc_i],
             mean_profit =
-                perform[, mean(profit)],
+                perform[, mean(profit, na.rm = TRUE)],
             rmse_train = 
-                perform[, mean(rmse_train)],
+                perform[, mean(rmse_train, na.rm = TRUE)],
             rmse_cv = 
-                perform[, mean(rmse_cv)]
+                perform[, mean(rmse_cv, na.rm = TRUE)]
         )
     
     #* profit for scenario i
@@ -294,7 +292,7 @@ toc()
 
 
 #* save results
-saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls.rds"))
+saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_300.rds"))
 
 
 

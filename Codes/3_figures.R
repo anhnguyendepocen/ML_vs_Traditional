@@ -1,3 +1,116 @@
+
+
+#'   Drawing graphs of simulation results
+#'
+
+rm(list = ls())
+
+# /*===========================================================
+#' # Preparation
+# /*===========================================================
+
+#* packages
+library(sf)
+library(raster)
+library(ggplot2)
+library(data.table)
+library(magrittr)
+library(viridis)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(here)
+theme_set(theme_bw())
+
+#* set working directory
+setwd(here())
+
+
+#' /*=========================================================================*/
+#' /*                         Load and Prepare Data                           */
+#' /*=========================================================================*/
+
+
+#******************************************************************************
+
+# -----------------
+# load results data
+# -----------------
+est_data <-
+    readRDS(here("GitControlled/Results/est_result_ls.rds")) %>% 
+    rbindlist() %>% 
+    dplyr::select(model, perform, field_col) %>% 
+    unnest(perform) %>% 
+    data.table() %>% 
+    print()
+
+
+# ----------------
+# data preparation
+# ----------------
+est_data <- est_data %>%
+    .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>% 
+    #---field size---
+    .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
+    #---model name---
+    .[model=="brf", model := "BRF"] %>%
+    .[model=="rf", model := "RF"] %>%
+    .[model=="lm", model := "OLS"] %>%
+    .[model=="ser", model := "SER"] %>%
+    .[, model := factor(model, levels = c("GWR", "BRF"))] %>% 
+    print()
+
+
+
+#' /*=========================================================================*/
+#' /*                           Mean and Error Bars                           */
+#' /*=========================================================================*/
+
+# --------
+# boxplot
+# --------
+gdata <- est_data[field_col==72,]
+mean_data <- gdata %>%
+    .[, .(profit = mean(profit),
+          profit_sd = sd(profit),
+          IQR = quantile(profit, 0.75) - quantile(profit, 0.25),
+          profit_low = quantile(profit, 0.25),
+          profit_high = quantile(profit, 0.75)
+    ), 
+    by=c("field_col", "design", "model")] %>%
+    .[, profit_low := profit_low - 1.5*IQR] %>% 
+    .[, profit_high := profit_high + 1.5*IQR] %>% 
+    print()
+source(here("Codes/Modules/figure_boxplot.R"))
+ggsave(file = here('Graph/mean_bar/profits_boxplot.png'),
+       height=6,width=6.5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # /*===========================================================
 #' # Visualization the field and spatial units
 # /*===========================================================
