@@ -4,22 +4,25 @@
 # ! Run RF and do economic analysis
 
 
-run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels) {
+run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, include_int = FALSE) {
   train_data <- copy(reg_data)
   test_data <- copy(cv_data$data[[1]])
-
 
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Define X
   # /*+++++++++++++++++++++++++++++++++++
-  int_var_names <- paste0("N_", x_vars)
-  int_var_exp <- paste0("= N * ", x_vars)
-  int_var_gen_exp <- paste0(int_var_names, int_var_exp, collapse = ",")
+  if (include_int == FALSE) {
+    all_X_vars <- c("N", x_vars)
+  } else {
+    int_var_names <- paste0("N_", x_vars)
+    int_var_exp <- paste0("= N * ", x_vars)
+    int_var_gen_exp <- paste0(int_var_names, int_var_exp, collapse = ",")
 
-  all_X_vars <- c("N", x_vars, int_var_names)
+    all_X_vars <- c("N", x_vars, int_var_names)
 
-  eval(parse(text = paste("train_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
-  eval(parse(text = paste("test_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
+    eval(parse(text = paste("train_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
+    eval(parse(text = paste("test_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
+  }
 
   X <- train_data[, ..all_X_vars]
 
