@@ -189,24 +189,6 @@ est_result_ls <- list()
 
 #*********************** loop over scenarios *********************#
 tic()
-for (sc_i in 1:nrow(field_with_design)) {
-
-
-  ## -----------
-  ##    data
-  ## -----------
-
-  #* field sf data
-  field_sf <- field_data[[sc_i]]
-
-  #* number of simulation cases
-  nsim <- field_parameters$field_pars[[sc_i]][, max(sim)]
-
-  #* load the simulated data
-  sim_data <-
-    field_with_design$data_file_name %>%
-    .[sc_i] %>%
-    readRDS()
 
   #* spatial weights matrix
   Wls <- field_with_design$weights_matrix[[sc_i]]

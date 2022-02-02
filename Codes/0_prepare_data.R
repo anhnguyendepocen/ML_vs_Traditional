@@ -115,28 +115,6 @@ field_with_design <-
 saveRDS(field_with_design, here("Shared/Data/field_with_design.rds"))
 
 
-# /*===========================================================
-#' # Add spatial weights matrix
-# /*===========================================================
-field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
-
-field_with_design <-
-  field_with_design %>%
-  rowwise() %>%
-  mutate(
-    weights_matrix = list(
-      list(
-        Wls_50 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 50),
-        Wls_100 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 100),
-        Wls_200 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 200),
-        Wls_500 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 500)
-      )
-    )
-  )
-
-#* save the fields with weights matrix
-saveRDS(field_with_design, here("Shared/Data/field_with_design.rds"))
-
 
 # /*===========================================================
 #' # Generate true field parameters
@@ -173,3 +151,27 @@ lapply(
   1:nrow(field_with_design),
   function(x) gen_reg_data(x, field_with_design, field_parameters)
 )
+
+
+
+# /*===========================================================
+#' # Add spatial weights matrix (aunit level)
+# /*===========================================================
+field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
+
+field_with_design <-
+    field_with_design %>%
+    rowwise() %>%
+    mutate(
+        weights_matrix = list(
+            list(
+                Wls_50 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 50),
+                Wls_100 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 100),
+                Wls_200 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 200),
+                Wls_500 = gen_weights_matrix(data_file_name = data_file_name, cutoff = 500)
+            )
+        )
+    )
+
+#* save the fields with weights matrix
+saveRDS(field_with_design, here("Shared/Data/field_with_design.rds"))
