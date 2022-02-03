@@ -21,7 +21,7 @@ ggplot(data = gdata,
     ylab('Average Profit Relative to True Optimal ($/ha)') +
     xlab('') +
     scale_y_continuous(expand = c(0, 0), breaks = value_ls, label = value_ls,
-                       limits = c(yaxis_min, yaxis_max + 10)) +
+                       limits = c(yaxis_min, 0)) +
     theme_bw() +
     theme(
         panel.grid.major = element_blank(), 
@@ -38,3 +38,5 @@ ggplot(data = gdata,
                                keyheight = unit(0.5, "cm"),
                                title.position = "left", 
                                title.vjust = 1)) 
+
+

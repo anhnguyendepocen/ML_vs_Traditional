@@ -30,14 +30,11 @@ setwd(here())
 #' /*                         Load and Prepare Data                           */
 #' /*=========================================================================*/
 
-
-#******************************************************************************
-
 # -----------------
 # load results data
 # -----------------
 est_data <-
-    readRDS(here("GitControlled/Results/est_result_ls_300.rds")) %>% 
+    readRDS(here("GitControlled/Results/est_result_ls.rds")) %>% 
     rbindlist() %>% 
     dplyr::select(model, perform, field_col) %>% 
     unnest(perform) %>% 
@@ -89,11 +86,42 @@ source(here("GitControlled/Codes/Modules/figure_boxplot_pool.R"))
 ggsave(file = here('GitControlled/Graphs/profits_boxplot_pool.png'),
        height=6,width=6.5)
 
-#
+
+
+#' /*=========================================================================*/
+#' /*                       Kernel Density Distribution                       */
+#' /*=========================================================================*/
+
+# ---------------
+# kernel density
+# ---------------
+gdata <- est_data
+source(here("GitControlled/Codes/Modules/figure_kernel_dist.R"))
+ggsave(file = here('GitControlled/Graphs/profits_kernel.png'),
+       height=6.5,width=6.5)
 
 
 
 
+# -------------------------
+# extreme values of profit 
+# -------------------------
+# set <-40 $/ha as extremely low profit
+extreme_percent <- pi_data[, .(count = sum(profit<(-40)), 
+                               nsim = length(sim)), 
+                           by=.(field_col, design, model)] %>%
+    .[, extreme_percent := round(count/nsim*100, 2)] %>%
+    #--- Long to Wide: dcast()
+    dcast(field_col+design~model, value.var="extreme_percent") %>%
+    data.table() %>%
+    .[order(field_col, GWR),] %>%
+    .[field_col==144,] %>% 
+    print()
+write.csv(extreme_percent, here('Graph/tables/extreme_percent.csv'))
+
+
+
+#*******************************************************************************
 
 
 

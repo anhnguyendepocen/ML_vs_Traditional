@@ -23,7 +23,7 @@ ggplot(data = gdata,
     xlab('') +
     scale_x_reordered(position = "bottom") +
     scale_y_continuous(expand = c(0, 0), breaks = value_ls, label = value_ls,
-                       limits = c(yaxis_min, yaxis_max + 10)) +
+                       limits = c(yaxis_min, 0)) +
     theme_bw() +
     theme(
         panel.grid.major = element_blank(), 
