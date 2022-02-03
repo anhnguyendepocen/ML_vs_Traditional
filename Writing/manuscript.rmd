@@ -138,7 +138,7 @@ theme_update(
 # #' ## Read datasets
 # #/*----------------------------------*/
 #--- table ---#
-extreme_table <- readRDS(paste0(wd,'/Graph/Tables/extreme_percent.rds'))
+# extreme_table <- readRDS(paste0(wd,'/Graph/Tables/extreme_percent.rds'))
 
 ```
 
@@ -195,7 +195,7 @@ include_graphics(here('Graphs/profits_boxplot_facet.png'))
 # Tables {-}
 
 ```{r extreme-percent, echo=FALSE}
-knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
+#knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
 ```
 
 

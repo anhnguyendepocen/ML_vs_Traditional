@@ -118,6 +118,16 @@ run_indiv_analysis <- function(model, reg_data, cv_data, x_vars, pN, pCorn, N_le
               pCorn,
               N_levels
           )
+  } else if (model == "rf_perfect") { # rf_perfect
+      results <-
+          run_rf_analysis(
+              reg_data,
+              cv_data,
+              x_vars,
+              pN,
+              pCorn,
+              N_levels
+          )
   } else if (model == "dmlof_semi") { # semiparmetric DML-OF
     results <-
       run_DML_OF_c_analysis(

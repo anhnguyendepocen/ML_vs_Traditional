@@ -111,6 +111,7 @@ models_data <-
             "ma_cf", # multiarm-CF
             "brf", # boosted RF
             "rf", # random forest
+            "rf_perfect", # random forest with perfect reg data
             "dmlof_semi", # semiparmetric DML-OF
             "dmlof_quad", # semiparmetric DML-OF
             "drof" # DR-OF
@@ -127,6 +128,7 @@ models_data <-
             FALSE, # ma_cf
             TRUE, # brf
             TRUE, # rf
+            TRUE, # rf_perfect
             FALSE, # dmlof_semi
             FALSE, # dmlof_quad
             FALSE # drof
@@ -291,7 +293,7 @@ toc()
 
 
 #* save results
-saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_300.rds"))
+saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_100.rds"))
 
 
 
