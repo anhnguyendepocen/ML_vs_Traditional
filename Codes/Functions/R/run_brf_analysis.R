@@ -5,7 +5,6 @@
 
 
 run_brf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, include_int = FALSE) {
-
   train_data <- copy(reg_data)
   test_data <- copy(cv_data$data[[1]])
 

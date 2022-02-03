@@ -8,7 +8,6 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
   train_data <- copy(reg_data)
   test_data <- copy(cv_data$data[[1]])
 
-
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Define X
   # /*+++++++++++++++++++++++++++++++++++
@@ -44,8 +43,7 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
       tune.parameters = "all"
     )
 
-
-  #************************   RMSR   ***********************
+  #************************   RMSE   ***********************
   e_hat_train <-
     train_data %>%
     .[, y_hat := predict(RF_temp, newdata = .[, c("N", all_X_vars), with = FALSE])] %>%
