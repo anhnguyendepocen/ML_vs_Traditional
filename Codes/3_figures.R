@@ -34,7 +34,7 @@ setwd(here())
 # load results data
 # -----------------
 est_data <-
-    readRDS(here("GitControlled/Results/est_result_ls.rds")) %>% 
+    readRDS(here("GitControlled/Results/est_result_ls_300.rds")) %>% 
     rbindlist() %>% 
     dplyr::select(model, perform, field_col) %>% 
     unnest(perform) %>% 
@@ -126,7 +126,7 @@ write.csv(extreme_percent, here('Graph/tables/extreme_percent.csv'))
 
 
 
-
+#*******************************************************************************
 
 
 
