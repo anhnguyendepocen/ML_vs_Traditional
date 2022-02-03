@@ -33,8 +33,9 @@ library(here)
 setwd(here())
 
 #* source all the R functions in the Functions/R folder
-fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
+fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) %>%
     purrr::map(~ source(.))
+
 
 
 # /*===========================================================
@@ -43,26 +44,23 @@ fs::dir_ls(here("Codes", "Functions", "R"), full.names = TRUE) %>%
 
 #* Read field data
 field_data <-
-    readRDS(here("Data/field_data.rds")) %>%
+    readRDS(here("Shared/Data/field_data.rds")) %>%
     pull(field_sf) 
 
 #* Read field parameters
-field_parameters <- readRDS(here("Data/field_parameters.rds"))
+field_parameters <- readRDS(here("Shared/Data/field_parameters.rds"))
 
 #* Read field data
-field_with_design <- readRDS(here("Data/field_with_design.rds"))
-
-
-#* missing simulations
-profit_ls <- readRDS(here("Results", "profit_ls.rds"))
-sim_id <- profit_ls[[3]]$data[[1]]$sim %>% unique()
-c(501:600)[!501:600 %in% sim_id]
+field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
 
 
 
+# /*===========================================================
+#' #  Run estimations
+# /*===========================================================
 
 ## ---------------------------------
-## Define regression functional form 
+## Regression functional form 
 ## ---------------------------------
 
 x_vars <-
@@ -121,21 +119,7 @@ ggplot() +
 
 
 #* spatial weights matrix
-#************************************************
-# this part should be added to the data preparation codes, and saved in field_data
-dt <- sim_data$reg_data[[1]][sim == 1, ]$data[[1]]
-D <- matrix(NA, nrow(dt), nrow(dt))             # distance matrix
-for (i in 1:nrow(dt)){
-    for(j in 1:nrow(dt)){
-        D[i,j] <- sqrt((dt$X[i] - dt$X[j])^2+
-                           (dt$Y[i] - dt$Y[j])^2 )
-    }
-}
-W <- 1/D^2             # inverse distance weights matrix
-diag(W) <- 0
-W <- W/rowSums(W)			    # row-standardize
-Wls <- mat2listw(W)	            # "listw" object
-#*************************************************
+Wls <- field_with_design$weights_matrix[[sc_i]]
 
 #* prices
 pN <- sim_data$pN
@@ -160,7 +144,7 @@ field_pars <-
 ## -----------------------------------------
 
 
-sim_i <- 4
+sim_i <- 1
 
 # /*+++++++++++++++++++++++++++++++++++
 #' ## Prepare data
@@ -179,79 +163,21 @@ reg_data <-
     .[, xy := x * y] %>%
     .[, N2 := N^2]
 
-#*#************************** run models ***************************#
+
+
+
+## ------------------------------
+##   run models
+## ------------------------------
+
 ols_results <- run_linear_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-ser_results <- run_sperror_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls)
-#******************************************************************************
+ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
+rf_results <- run_rf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
+brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 
 
 
 
-
-
-#* select the estimation models you want
-models_data <-
-    data.table(
-        model = c(
-            "ser", # spatial error
-            "lm", # linear quadratic
-            "gwr_t", # gwr-trevisan
-            "gwr_semi", # gwr-semiparametric
-            "gwr_zone_scam", # scam by zone,
-            "ma_cf", # multiarm-CF
-            "brf", # boosted RF
-            "rf", # random forest
-            "dmlof_semi", # semiparmetric DML-OF
-            "dmlof_quad", # semiparmetric DML-OF
-            "drof" # DR-OF
-        ),
-        on = c(
-            TRUE, # ser
-            TRUE, # lm
-            FALSE, # gwr_t
-            FALSE, # gwr_semi
-            FALSE, # gwr_zone_scam
-            TRUE, # ma_cf
-            TRUE, # brf
-            FALSE, # rf
-            FALSE, # dmlof_semi
-            FALSE, # dmlof_quad
-            FALSE # drof
-        )
-    )
-
-# result table
-results <-
-    models_data %>%
-    .[on == TRUE, ] %>%
-    rowwise() %>%
-    mutate(results = list(
-        ols_results.raw
-    )) %>%
-    mutate(results = list(
-        mutate(results, model = model)
-    )) %>%
-    pull(results) %>%
-    rbindlist()
-
-
-#* calculate profits
-est_result <-
-    results %>%
-    nest_by(model) %>%
-    mutate(
-        field_col = field_with_design$field_col[sc_i],
-        rmse_train = data.table(data)[, mean(e_hat_train^2, na.rm = TRUE) %>% sqrt()],
-        rmse_cv = data.table(data)[, mean(e_hat_cv^2, na.rm = TRUE) %>% sqrt()],
-        profit =
-            field_pars[sim == sim_i+1, ] %>%
-            data.table(field_sf)[, .(cell_id, aunit_id)][., on = "cell_id"] %>%
-            data.table(data)[., , on = c("sim", "aunit_id")] %>%
-            .[, yield := gen_yield_QP(b0, b1, b2, Nk, opt_N_hat)] %>%
-            .[, profit := pCorn * yield - pN * opt_N_hat] %>%
-            .[, profit := profit - profit_opt] %>% 
-            .[, mean(profit, na.rm = TRUE)]
-    )
 
 
 

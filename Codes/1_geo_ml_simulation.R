@@ -38,7 +38,6 @@ fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) 
 
 
 
-
 # /*===========================================================
 #' # Read data
 # /*===========================================================
@@ -239,7 +238,7 @@ for(sc_i in 1:nrow(field_with_design)){
     ## -----------------------
     
     #* how many simulations to run
-    sim_range <- c(1:300)
+    sim_range <- c(1:100)
     
     #* run pre-defined `run_analysis` function
     eonr_results <-

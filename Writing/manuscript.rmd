@@ -126,6 +126,20 @@ theme_update(
 #
 # #* create figures
 # source(here("Codes", "3_make_figures_publication.R"))
+
+#/*----------------------------------*/
+#' ## Create figures and tables
+#/*----------------------------------*/
+# purl("./Codes/03_figures_tables.Rmd", output = "./Codes/03_figures_tables.R")  
+# 
+# source("./Codes/03_figures_tables.R")
+# 
+# #/*----------------------------------*/
+# #' ## Read datasets
+# #/*----------------------------------*/
+#--- table ---#
+extreme_table <- readRDS(paste0(wd,'/Graph/Tables/extreme_percent.rds'))
+
 ```
 
 =======
@@ -163,5 +177,26 @@ theme_update(
 `r run_pagebreak()`
 
 # References
+
+
+# Figures {-}
+
+```{r profits-boxplot-pool, fig.cap="The profit performances of different models. Numbers displayed on top of boxplot bars are the mean profit (standard deviation).", echo=FALSE}
+include_graphics(here('Graphs/profits_boxplot_pool.png'))
+```
+
+```{r profits-boxplot-facet, fig.cap="The profit performances of different models. Numbers displayed on top of boxplot bars are the mean profit (standard deviation).", echo=FALSE}
+include_graphics(here('Graphs/profits_boxplot_facet.png'))
+```
+
+
+
+
+# Tables {-}
+
+```{r extreme-percent, echo=FALSE}
+knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
+```
+
 
 
