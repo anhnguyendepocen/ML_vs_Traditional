@@ -8,12 +8,12 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
   train_data <- copy(reg_data)
   test_data <- copy(cv_data$data[[1]])
 
-  
+
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Define X
   # /*+++++++++++++++++++++++++++++++++++
   if (include_int == FALSE) {
-    all_X_vars <- c(x_vars)
+    all_X_vars <- x_vars
   } else {
     int_var_names <- paste0("N_", x_vars)
     int_var_exp <- paste0("= N * ", x_vars)
@@ -26,7 +26,6 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
   }
 
   X <- train_data[, c("N", all_X_vars), with = FALSE]
-
 
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Define Y
@@ -44,7 +43,7 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
       # min.node.size = 10
       tune.parameters = "all"
     )
-  
+
 
   #************************   RMSR   ***********************
   e_hat_train <-
