@@ -64,7 +64,7 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
 
   N_seq <-
     data.table(
-      N = seq(min(train_data$N), max(train_data$N), by = 10)
+      N = seq(min(train_data$N), max(train_data$N), by = 2)
     )
 
   rf_results <-
