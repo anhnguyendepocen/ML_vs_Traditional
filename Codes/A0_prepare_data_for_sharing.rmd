@@ -1,0 +1,61 @@
+# Objective
+
++ Create a dataset to share with Paul
+
+# Set up
+
+## Packages
+```{r }
+library(sf)
+library(data.table)
+library(tidyverse)
+library(here)
+```
+
+# Prepare Data
+
+```{r }
+#* Read field data
+field_data <-
+  readRDS(here("Shared/Data/field_data.rds")) %>%
+  pull(field_sf) %>%
+  .[[1]]
+
+saveRDS(field_data, here("Shared/Data/ToShare/field_sf.rds"))
+
+field_with_design <- readRDS(here("Shared/Data/field_with_design.rds")) %>% .[sce_i, ]
+
+x_vars <-
+  c(
+    "b0_1", "b0_2",
+    "Nk_2_1", "Nk_2_2", "Nk_1_1",
+    # "Nk_2_1", "Nk_2_2", "Nk_1_1", "Nk_1_2",
+    "plateau_2_1", "plateau_2_2", "plateau_1_1",
+    # "plateau_2_1", "plateau_2_2", "plateau_1_1", "plateau_1_2",
+    "theta_plateau_1", "theta_plateau_2",
+    "theta_Nk_1", "theta_Nk_2",
+    "theta_b0_1", "theta_b0_2"
+  )
+
+#* Read the simulated data
+sim_data <-
+  field_with_design$data_file_name %>%
+  readRDS() %>%
+  .$reg_data %>%
+  .[[1]] %>%
+  .[, N_levels := NULL] %>%
+  unnest() %>%
+  data.table() %>%
+  .[, c("sim", "aunit_id", x_vars), with = FALSE] %>%
+  setnames(
+    names(.),
+    c(
+      "sim",
+      "aunit_id",
+      paste0("par", 1:(length(names(.)) - 2))
+    )
+  )
+
+
+saveRDS(sim_data, here("Shared/Data/ToShare/sim_data.rds"))
+```
