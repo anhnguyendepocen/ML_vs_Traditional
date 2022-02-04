@@ -1,0 +1,309 @@
+
+# Objective
+
++ Check how sensitive RF is to
+  + the number of variables included
+  + tuning parameters
+
+# Conclusion
+
++ default parametrers are really good
++ tuning parameters via cross-validation does not really help 
+
+# Set up
+
+## Packages
+```{r }
+library(sf)
+library(data.table)
+library(grf)
+library(tidyverse)
+library(here)
+```
+
+```{r }
+fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) %>%
+  purrr::map(~ source(.))
+
+#* field
+sce_i <- 3
+```
+
+
+# Prepare Data
+
+```{r }
+#* field sf data
+field_data <-
+  readRDS(here("Shared/Data/field_data.rds")) %>%
+  pull(field_sf) %>%
+  #* largest field
+  .[[sce_i]]
+
+#* field parameters
+field_parameters <-
+  readRDS(here("Shared/Data/field_parameters.rds")) %>%
+  .[sce_i, ]
+
+#* number of simulation cases
+nsim <- field_parameters$field_pars[[1]][, max(sim)]
+
+#* Read the simulated data
+field_with_design <-
+  readRDS(here("Shared/Data/field_with_design.rds")) %>%
+  .[sce_i, ]
+
+field_sf <- field_with_design$field_sf
+
+sim_data <-
+  field_with_design$data_file_name %>%
+  readRDS()
+
+#* define prices
+pN <- sim_data$pN
+pCorn <- sim_data$pCorn
+```
+
+## Define simulation function
+
+```{r }
+run_analysis <- function(sim_i, x_vars, models_data, pN, pCorn, Wls, nsim) {
+  print(sim_i)
+
+  # /*+++++++++++++++++++++++++++++++++++
+  #' ## Prepare data
+  # /*+++++++++++++++++++++++++++++++++++
+  # /*+++++++++++++++++++++++++++++++++++
+  #* extract the data for the sim_i
+  train_data <- sim_data$reg_data[[1]][sim == sim_i, ]
+  cv_data <- sim_data$reg_data[[1]][sim == ifelse(sim_i + 1 > nsim, 1, sim_i + 1), ]
+
+  #* define parameters
+  N_levels <- train_data$N_levels[[1]]
+  reg_data <-
+    train_data$data[[1]] %>%
+    .[, x := (X - min(X)) / (max(X) - min(X))] %>%
+    .[, y := (Y - min(Y)) / (max(Y) - min(Y))] %>%
+    .[, xy := x * y] %>%
+    .[, N2 := N^2]
+
+  # reg_data[, N] %>% hist(breaks = 30)
+  # ggplot(reg_data) +
+  #   geom_point(aes(y = yield, x = N))
+
+  results <-
+    models_data %>%
+    .[on == TRUE, ] %>%
+    rowwise() %>%
+    mutate(results = list(
+      run_indiv_analysis(model, reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls)
+    )) %>%
+    mutate(results = list(
+      mutate(results, model = model)
+    )) %>%
+    pull(results) %>%
+    rbindlist()
+
+  return(results)
+}
+```
+
+## Define RF Analysis
+
+```{r }
+# /*===========================================================
+#' # RF analysis
+# /*===========================================================
+# ! Run RF and do economic analysis
+
+
+run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, include_int = FALSE) {
+  train_data <- copy(reg_data)
+  test_data <- copy(cv_data$data[[1]])
+
+  # /*+++++++++++++++++++++++++++++++++++
+  #' ## Define X
+  # /*+++++++++++++++++++++++++++++++++++
+  if (include_int == FALSE) {
+    all_X_vars <- x_vars
+  } else {
+    int_var_names <- paste0("N_", x_vars)
+    int_var_exp <- paste0("= N * ", x_vars)
+    int_var_gen_exp <- paste0(int_var_names, int_var_exp, collapse = ",")
+
+    all_X_vars <- c(x_vars, int_var_names)
+
+    eval(parse(text = paste("train_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
+    eval(parse(text = paste("test_data[, `:=`(", int_var_gen_exp, ")]", sep = "")))
+  }
+
+  X <- train_data[, c("N", all_X_vars), with = FALSE]
+
+  # /*+++++++++++++++++++++++++++++++++++
+  #' ## Define Y
+  # /*+++++++++++++++++++++++++++++++++++
+  Y <- train_data[, yield]
+
+  # /*+++++++++++++++++++++++++++++++++++
+  #' ## Run RF
+  # /*+++++++++++++++++++++++++++++++++++
+  RF_temp <-
+    grf::regression_forest(
+      X = X,
+      Y = Y,
+      num.trees = 2000,
+      # min.node.size = 10
+      # tune.parameters = "all",,
+      # tune.parameters = c("min.node.size", "sample.fraction", "mtry"),
+      # tune.num.trees = 100,
+      # tune.num.reps = 100
+    )
+
+
+  #************************   RMSE   ***********************
+  e_hat_train <-
+    train_data %>%
+    .[, y_hat := predict(RF_temp, newdata = .[, c("N", all_X_vars), with = FALSE])] %>%
+    .[, e_hat := yield - y_hat] %>%
+    .[, .(aunit_id, e_hat)] %>%
+    setnames("e_hat", "e_hat_train")
+
+  e_hat_cv <-
+    test_data %>%
+    .[, y_hat := predict(RF_temp, newdata = .[, c("N", all_X_vars), with = FALSE])] %>%
+    .[, e_hat := yield - y_hat] %>%
+    .[, .(aunit_id, e_hat)] %>%
+    setnames("e_hat", "e_hat_cv")
+  #*********************************************************
+
+  N_seq <-
+    data.table(
+      N = seq(min(train_data$N), max(train_data$N), by = 2)
+    )
+
+  rf_results <-
+    test_data %>%
+    .[, c("aunit_id", "yield", all_X_vars), with = FALSE] %>%
+    expand_grid_df(., N_seq) %>%
+    .[, yield_hat := predict(RF_temp, newdata = .[, c("N", all_X_vars), with = FALSE])] %>%
+    .[, pi_hat := pCorn * yield_hat - pN * N] %>%
+    .[, .SD[which.max(pi_hat)], by = aunit_id] %>%
+    .[, opt_N_hat := N] %>%
+    .[, .(aunit_id, opt_N_hat)] %>%
+    #--- RMSE ---
+    .[e_hat_train, on = "aunit_id"] %>%
+    .[e_hat_cv, on = "aunit_id"] %>%
+    .[, sim := cv_data$sim]
+
+  return(rf_results)
+}
+```
+
+# Analysis
+
+```{r, include=FALSE}
+models_data <-
+  data.table(
+    model = c(
+      "ser_50", # spatial error, weights_50
+      "ser_100", # spatial error, weights_100
+      "ser_200", # spatial error, weights_200
+      "ser_500", # spatial error, weights_500
+      "lm", # linear quadratic
+      "gwr_t", # gwr-trevisan
+      "gwr_semi", # gwr-semiparametric
+      "gwr_zone_scam", # scam by zone,
+      "ma_cf", # multiarm-CF
+      "brf", # boosted RF
+      "rf", # random forest
+      "dmlof_semi", # semiparmetric DML-OF
+      "dmlof_quad", # semiparmetric DML-OF
+      "drof" # DR-OF
+    ),
+    on = c(
+      FALSE, # ser_50
+      FALSE, # ser_100
+      FALSE, # ser_200
+      FALSE, # ser_500
+      FALSE, # lm
+      FALSE, # gwr_t
+      FALSE, # gwr_semi
+      FALSE, # gwr_zone_scam
+      FALSE, # ma_cf
+      FALSE, # brf
+      TRUE, # rf
+      FALSE, # dmlof_semi
+      FALSE, # dmlof_quad
+      FALSE # drof
+    )
+  )
+
+
+x_vars <-
+  c(
+    "b0_1", "b0_2",
+    "Nk_2_1", "Nk_2_2", "Nk_1_1", "Nk_1_2",
+    "plateau_2_1", "plateau_2_2", "plateau_1_1", "plateau_1_2",
+    "theta_plateau_1", "theta_plateau_2",
+    "theta_Nk_1", "theta_Nk_2",
+    "theta_b0_1", "theta_b0_2"
+  )
+
+x_vars <-
+  c(
+    "b0", "Nk", "plateau"
+  )
+
+sim_range <- c(1:2)
+
+eonr_results <-
+  lapply(
+    sim_range,
+    function(x) {
+      run_analysis(
+        sim_i = x,
+        x_vars = x_vars,
+        models_data = models_data,
+        pN = pN,
+        pCorn = pCorn,
+        Wls = Wls,
+        nsim = nsim
+      )
+    }
+  ) %>%
+  rbindlist()
+
+est_result <-
+  eonr_results %>%
+  nest_by(model) %>%
+  mutate(
+    perform = list(
+      field_pars[sim %in% (sim_range + 1), ] %>%
+        data.table(field_sf)[, .(cell_id, aunit_id)][., on = "cell_id"] %>%
+        data.table(data)[., , on = c("sim", "aunit_id")] %>%
+        .[, y_hat := gen_yield_QP(b0, b1, b2, Nk, opt_N_hat)] %>%
+        .[, profit := pCorn * y_hat - pN * opt_N_hat] %>%
+        .[, profit := profit - profit_opt] %>%
+        .[, .(
+          profit = mean(profit, na.rm = TRUE),
+          rmse_train = mean(e_hat_train^2, na.rm = TRUE) %>% sqrt(),
+          rmse_cv = mean(e_hat_cv^2, na.rm = TRUE) %>% sqrt()
+        ),
+        by = sim
+        ]
+    )
+  ) %>%
+  mutate(
+    field_col =
+      field_with_design$field_col[sc_i],
+    mean_profit =
+      perform[, mean(profit, na.rm = TRUE)],
+    rmse_train =
+      perform[, mean(rmse_train, na.rm = TRUE)],
+    rmse_cv =
+      perform[, mean(rmse_cv, na.rm = TRUE)]
+  )
+
+est_result
+```
+

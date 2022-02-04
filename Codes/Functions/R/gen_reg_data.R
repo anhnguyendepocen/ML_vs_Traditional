@@ -65,7 +65,7 @@ gen_reg_data <- function(i, field_with_design, field_parameters) {
     field[cell_data, on = "cell_id"] %>%
     n_assign_data[., on = c("sim", "block_id", "plot_in_block_id")] %>%
     #* add cell-level N application noise to target N
-    .[, meidan_det_N := median(N_tgt), by = sim] %>% 
+    .[, meidan_det_N := median(N_tgt), by = sim] %>%
     .[, N := N_tgt + meidan_det_N * N_error] %>%
     .[N < 0, N := 0] %>%
     #* deterministic yield
@@ -79,7 +79,7 @@ gen_reg_data <- function(i, field_with_design, field_parameters) {
     #* aggregate the data by analysis unit
     .[,
       lapply(.SD, mean),
-      by = .(sim, aunit_id),
+      by = .(sim, aunit_id, block_id),
       .SDcols = vars_to_summarize
     ] %>%
     .[, N2 := N^2] %>%

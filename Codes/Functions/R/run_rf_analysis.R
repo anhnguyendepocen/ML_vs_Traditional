@@ -40,8 +40,11 @@ run_rf_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_levels, incl
       Y = Y,
       num.trees = 2000,
       # min.node.size = 10
-      tune.parameters = "all"
+      # tune.parameters = "all",,
+      tune.parameters = c("min.node.size", "sample.fraction", "mtry"),
+      tune.num.trees = 100
     )
+
 
   #************************   RMSE   ***********************
   e_hat_train <-
