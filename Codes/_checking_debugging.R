@@ -94,7 +94,7 @@ feols_formula <-
 ##    data of field size scenario
 ## ------------------------------
 
-sc_i <- 1
+sc_i <- 3
 
 #* field sf data
 field_sf <- field_data[[sc_i]]
@@ -144,7 +144,7 @@ field_pars <-
 ## -----------------------------------------
 
 
-sim_i <- 1
+sim_i <- 3
 
 # /*+++++++++++++++++++++++++++++++++++
 #' ## Prepare data
@@ -173,9 +173,8 @@ reg_data <-
 ols_results <- run_linear_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
 rf_results <- run_rf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
+rf_perfect_results <- run_rf_perfect_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-
-
 
 
 

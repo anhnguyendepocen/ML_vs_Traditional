@@ -98,38 +98,41 @@ feols_formula <-
 
 #* select the estimation models you want
 models_data <-
-  data.table(
-    model = c(
-      "ser_50", # spatial error, weights_50
-      "ser_100", # spatial error, weights_100
-      "ser_200", # spatial error, weights_200
-      "ser_500", # spatial error, weights_500
-      "lm", # linear quadratic
-      "gwr_t", # gwr-trevisan
-      "gwr_semi", # gwr-semiparametric
-      "gwr_zone_scam", # scam by zone,
-      "ma_cf", # multiarm-CF
-      "brf", # boosted RF
-      "rf", # random forest
-      "dmlof_semi", # semiparmetric DML-OF
-      "dmlof_quad", # semiparmetric DML-OF
-      "drof" # DR-OF
-    ),
-    on = c(
-      TRUE, # ser_50
-      FALSE, # ser_100
-      FALSE, # ser_200
-      FALSE, # ser_500
-      TRUE, # lm
-      FALSE, # gwr_t
-      FALSE, # gwr_semi
-      FALSE, # gwr_zone_scam
-      FALSE, # ma_cf
-      TRUE, # brf
-      TRUE, # rf
-      FALSE, # dmlof_semi
-      FALSE, # dmlof_quad
-      FALSE # drof
+    data.table(
+        model = c(
+            "ser_50", # spatial error, weights_50
+            "ser_100", # spatial error, weights_100
+            "ser_200", # spatial error, weights_200
+            "ser_500", # spatial error, weights_500
+            "lm", # linear quadratic
+            "gwr_t", # gwr-trevisan
+            "gwr_semi", # gwr-semiparametric
+            "gwr_zone_scam", # scam by zone,
+            "ma_cf", # multiarm-CF
+            "brf", # boosted RF
+            "rf", # random forest
+            "rf_perfect", # random forest with perfect reg data
+            "dmlof_semi", # semiparmetric DML-OF
+            "dmlof_quad", # semiparmetric DML-OF
+            "drof" # DR-OF
+        ),
+        on = c(
+            TRUE, # ser_50
+            FALSE, # ser_100
+            FALSE, # ser_200
+            FALSE, # ser_500
+            TRUE, # lm
+            FALSE, # gwr_t
+            FALSE, # gwr_semi
+            FALSE, # gwr_zone_scam
+            FALSE, # ma_cf
+            TRUE, # brf
+            TRUE, # rf
+            TRUE, # rf_perfect
+            FALSE, # dmlof_semi
+            FALSE, # dmlof_quad
+            FALSE # drof
+        )
     )
   )
 
@@ -294,4 +297,10 @@ toc()
 
 
 #* save results
-saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_300.rds"))
+saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_100.rds"))
+
+
+
+
+
+
