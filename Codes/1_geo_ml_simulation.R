@@ -1,5 +1,5 @@
 
-## Packages
+#' Yield response model estimations
 
 rm(list = ls())
 
@@ -203,8 +203,11 @@ for(sc_i in 1:nrow(field_with_design)){
     #* field sf data
     field_sf <- field_data[[sc_i]]
     
+    #* field true parameters
+    field_pars <- field_parameters$field_pars[[sc_i]]
+        
     #* number of simulation cases
-    nsim <- field_parameters$field_pars[[sc_i]][, max(sim)]
+    nsim <- field_pars[, max(sim)]
     
     #* load the simulated data
     sim_data <-
@@ -224,9 +227,7 @@ for(sc_i in 1:nrow(field_with_design)){
     ## -----------------------
 
     #* find true EONR
-    field_pars <-
-        field_parameters$field_pars %>%
-        rbindlist() %>%
+    field_pars <- field_pars %>%
         .[, opt_N := (pN / pCorn - b1) / (2 * b2)] %>%
         .[, opt_N := pmin(Nk, opt_N)] %>%
         .[, opt_N := pmax(0, opt_N)] %>% 

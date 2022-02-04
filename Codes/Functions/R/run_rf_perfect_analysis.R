@@ -12,7 +12,7 @@ run_rf_perfect_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_leve
   # /*+++++++++++++++++++++++++++++++++++
   #' ## Define X
   # /*+++++++++++++++++++++++++++++++++++
-  x_vars <- c( "Nk", "plateau", "b0")
+  x_vars <- c("Nk", "plateau", "b0")
   
   if (include_int == FALSE) {
     all_X_vars <- c(x_vars)
@@ -43,7 +43,7 @@ run_rf_perfect_analysis <- function(reg_data, cv_data, x_vars, pN, pCorn, N_leve
       X = X,
       Y = Y,
       num.trees = 2000,
-      # min.node.size = 10
+      # min.node.size = 10,
       tune.parameters = "all"
     )
   

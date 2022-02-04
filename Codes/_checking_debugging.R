@@ -1,5 +1,5 @@
 
-## Packages
+#' Yield response model estimations
 
 rm(list = ls())
 
@@ -56,7 +56,7 @@ field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
 
 
 # /*===========================================================
-#' #  Run estimations
+#' #  preparations
 # /*===========================================================
 
 ## ---------------------------------
@@ -66,7 +66,9 @@ field_with_design <- readRDS(here("Shared/Data/field_with_design.rds"))
 x_vars <-
     c(
         "b0_1", "b0_2",
+        # "Nk_2_1", "Nk_2_2", "Nk_1_1",
         "Nk_2_1", "Nk_2_2", "Nk_1_1", "Nk_1_2",
+        # "plateau_2_1", "plateau_2_2", "plateau_1_1",
         "plateau_2_1", "plateau_2_2", "plateau_1_1", "plateau_1_2",
         "theta_plateau_1", "theta_plateau_2",
         "theta_Nk_1", "theta_Nk_2",
@@ -99,24 +101,16 @@ sc_i <- 3
 #* field sf data
 field_sf <- field_data[[sc_i]]
 
+#* field true parameters
+field_pars <- field_parameters$field_pars[[sc_i]]
+
 #* number of simulation cases
-nsim <- field_parameters$field_pars[[sc_i]][, max(sim)]
+nsim <- field_pars[, max(sim)]
 
 #* load the simulated data
 sim_data <-
     field_with_design$data_file_name %>% .[sc_i] %>% 
     readRDS()
-
-
-#************************************************
-#* visual checking
-dt <- sim_data$reg_data[[1]][sim == 1, ]$data[[1]]
-f <- left_join(field_sf, dt, by = c("aunit_id"))
-ggplot() +
-    geom_sf(data = f, aes(fill = factor(N_tgt)), size = 0.3) +
-    scale_fill_viridis_d(name = "N rate (kg/ha)", direction = -1)
-#************************************************
-
 
 #* spatial weights matrix
 Wls <- field_with_design$weights_matrix[[sc_i]]
@@ -126,10 +120,12 @@ pN <- sim_data$pN
 pCorn <- sim_data$pCorn
 
 
+## -----------------------
+## Find true optimal N  
+## -----------------------
+
 #* find true EONR
-field_pars <-
-    field_parameters$field_pars %>%
-    rbindlist() %>%
+field_pars <- field_pars %>%
     .[, opt_N := (pN / pCorn - b1) / (2 * b2)] %>%
     .[, opt_N := pmin(Nk, opt_N)] %>%
     .[, opt_N := pmax(0, opt_N)] %>% 
@@ -138,14 +134,26 @@ field_pars <-
     .[, profit_opt := pCorn * yield_opt - pN * opt_N]
 
 
+#************************************************
+#* visual checking
+# dt <- sim_data$reg_data[[1]][sim == 1, ]$data[[1]]
+# f <- left_join(field_sf, dt, by = c("aunit_id"))
+# ggplot() +
+#     geom_sf(data = f, aes(fill = factor(N_tgt)), size = 0.3) +
+#     scale_fill_viridis_d(name = "N rate (kg/ha)", direction = -1)
+#************************************************
 
-## -----------------------------------------
-##  estimation analysis for simulation i
-## -----------------------------------------
 
 
-sim_i <- 3
 
+
+# /*===========================================================
+#' #  estimation analysis for simulation sim_i
+# /*===========================================================
+
+sim_i <- 2
+
+    
 # /*+++++++++++++++++++++++++++++++++++
 #' ## Prepare data
 # /*+++++++++++++++++++++++++++++++++++
@@ -165,121 +173,44 @@ reg_data <-
 
 
 
-
 ## ------------------------------
 ##   run models
 ## ------------------------------
 
 ols_results <- run_linear_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
+# ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
 rf_results <- run_rf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 rf_perfect_results <- run_rf_perfect_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
+# brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 
 
+#* calculate model performances
+perf_df(ols_results)
+perf_df(rf_results)
+perf_df(rf_perfect_results)
 
 
+#****************************************************************************
+perf_df <- function(model_result){
+    perf_df <- field_pars[sim==sim_i+1] %>%
+        data.table(field_sf)[, .(cell_id, aunit_id)][., on = "cell_id"] %>%
+        data.table(model_result)[., , on = c("sim", "aunit_id")] %>% 
+        .[, y_hat := gen_yield_QP(b0, b1, b2, Nk, opt_N_hat)] %>%
+        .[, profit := pCorn * y_hat - pN * opt_N_hat] %>%
+        .[, profit := profit - profit_opt] %>% 
+        .[, .(profit = mean(profit, na.rm = TRUE),
+              rmse_train = mean(e_hat_train^2, na.rm = TRUE) %>% sqrt(),
+              rmse_cv = mean(e_hat_cv^2, na.rm = TRUE) %>% sqrt()
+        ),
+        by = sim]
+    return(perf_df)
+}  
+#****************************************************************************
 
-# data <- copy(reg_data)
-#     N_mean <- mean(data$N); N2_mean <- mean(data$N2)
-#     N_sd <- sd(data$N); N2_sd <- sd(data$N2)
-# test_data <- copy(cv_data$data[[1]])
-# 
-# 
-# # === standardize variables ===#
-# data <- data[, (x_vars) := lapply(.SD, scale), .SDcols = x_vars] %>% 
-#     .[, N := scale(N)] %>%
-#     .[, N2 := scale(N2)]
-# test_data <- test_data[, (x_vars) := lapply(.SD, scale), .SDcols = x_vars] %>% 
-#     .[, N := scale(N)] %>%
-#     .[, N2 := scale(N2)]
-# 
-# 
-# # === spatial error model ===#
-# ser_res <- spatialreg::errorsarlm(feols_formula, data = data, listw = Wls)
-# 
-# # predict optimal N rates
-# N_data <-
-#     data.table(
-#         N = seq(min(N_levels), max(N_levels), length = 50)
-#     ) %>%
-#     .[, N2 := N^2] %>% 
-#     #=== standardize testing N rates ===#
-#     .[, N := (N - N_mean) / N_sd] %>%
-#     .[, N2 := (N2 - N2_mean) / N2_sd]
-# 
-# ser_results <-
-#     test_data %>%
-#     .[, `:=`(
-#         N = NULL,
-#         N2 = NULL
-#     )] %>%
-#     expand_grid_df(., N_data) %>%
-#     .[, y_hat := predict(ser_res, newdata = .) %>% data.frame() %>% pull(trend)] %>%
-#     .[, pi_hat := pCorn * y_hat - pN * (N * N_sd + N_mean)] %>%
-#     .[, .SD[which.max(pi_hat), ], by = aunit_id] %>%
-#     .[, .(aunit_id, N)] %>%
-#     setnames("N", "opt_N_hat") %>%
-#     .[, sim := cv_data$sim]
-
-#************************** *********************** ***************************#
-# data <- copy(reg_data)
-# test_data <- copy(cv_data$data[[1]])
-# 
-# 
-# # === standardize variables ===#
-# data <- data[, (x_vars) := lapply(.SD, scale), .SDcols = x_vars] 
-# test_data <- test_data[, (x_vars) := lapply(.SD, scale), .SDcols = x_vars] 
-# 
-# 
-# # === spatial error model ===#
-# ser_res <- spatialreg::errorsarlm(feols_formula, data = data, listw = Wls)
-# 
-# # predict optimal N rates
-# N_data <-
-#     data.table(
-#         N = seq(min(N_levels), max(N_levels), length = 50)
-#     ) %>%
-#     .[, N2 := N^2] 
-# 
-# ser_results_0 <-
-#     test_data %>%
-#     .[, `:=`(
-#         N = NULL,
-#         N2 = NULL
-#     )] %>%
-#     expand_grid_df(., N_data) %>%
-#     .[, y_hat := predict(ser_res, newdata = .) %>% data.frame() %>% pull(trend)] %>%
-#     .[, pi_hat := pCorn * y_hat - pN * (N)] %>%
-#     .[, .SD[which.max(pi_hat), ], by = aunit_id] %>%
-#     .[, .(aunit_id, N)] %>%
-#     setnames("N", "opt_N_hat") %>%
-#     .[, sim := cv_data$sim]
-
-#*******************************************************************************
+rf_results <- run_rf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
+rf_results$opt_N_hat %>% hist(breaks=100)
+perf_df_ls[[sim_i]] <- perf_df(rf_results)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+        
