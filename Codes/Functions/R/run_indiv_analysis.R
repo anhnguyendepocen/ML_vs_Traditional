@@ -120,7 +120,7 @@ run_indiv_analysis <- function(model, reg_data, cv_data, x_vars, pN, pCorn, N_le
           )
   } else if (model == "rf_perfect") { # rf_perfect
       results <-
-          run_rf_analysis(
+          run_rf_perfect_analysis(
               reg_data,
               cv_data,
               x_vars,
