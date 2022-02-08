@@ -1,5 +1,5 @@
 ---
-title: "New"
+title: "Comparing Machine Learning and Traditional Regression Methods in Site-Specific Economically Optimal Nitrogen Rate Prediction"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
@@ -55,6 +55,7 @@ library(sf)
 library(lfe)
 library(modelsummary)
 library(patchwork)
+library(gridExtra)
 ```
 
 ```{r figure_setup, cache = F}
@@ -105,6 +106,7 @@ theme_update(
 ```
 
 <<<<<<< HEAD:Writing/manuscript.rmd
+
 ```{r include = FALSE}
 # /*===========================================================
 #' # Prepare data and results for writing
@@ -112,34 +114,44 @@ theme_update(
 #* source all the functions in the Functions folder
 # fs::dir_ls(here("Codes", "Functions"), full.names = TRUE) %>%
 #   lapply(., function(x) source(x))
-#
-# #* read the results rds file
-# results <-
-#   here("Results", "pi_data.rds") %>%
-#   readRDS() %>%
-#   .[, type := ifelse(transfer == 0, "GWR-R", "GWR-T")] %>%
-#   .[, bias := pi_diff_est - pi_diff]
-#
-# pi_dif_gwr <-
-#   results[, .(pi_dif = mean(pi_diff)), by = type] %>%
-#   .[, diff(pi_dif)]
-#
-# #* create figures
-# source(here("Codes", "3_make_figures_publication.R"))
 
 #/*----------------------------------*/
-#' ## Create figures and tables
+#' ##  data preparation
 #/*----------------------------------*/
-# purl("./Codes/03_figures_tables.Rmd", output = "./Codes/03_figures_tables.R")  
-# 
-# source("./Codes/03_figures_tables.R")
-# 
-# #/*----------------------------------*/
-# #' ## Read datasets
-# #/*----------------------------------*/
-#--- table ---#
-# extreme_table <- readRDS(paste0(wd,'/Graph/Tables/extreme_percent.rds'))
+#' load results data
+est_data <-
+    readRDS(here("Results", "est_result_ls_400.rds")) %>% 
+    rbindlist() %>% 
+    dplyr::select(model, perform, field_col) %>% 
+    unnest(perform) %>% 
+    data.table() 
+#' rename columns
+gdata <- est_data %>%
+    .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>% 
+    #---field size---
+    .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
+    .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>% 
+    #---model name---
+    .[model=="brf", model := "BRF"] %>%
+    .[model=="rf", model := "RF"] %>%
+    .[model=="rf_perfect", model := "RF best"] %>%
+    .[model=="lm", model := "LM"] %>%
+    .[model=="ser_50", model := "SER"] %>%
+    .[, model := factor(model, levels = c("RF", "RF best", "BRF", "LM", "SER"))] 
+#' mean and sd
+mean_data <- gdata %>%
+    .[, .(profit = mean(profit) %>% round(2),
+          profit_sd = sd(profit) %>% round(2),
+          rmse = mean(rmse_cv) %>% round(2),
+          rmse_sd = sd(rmse_cv) %>% round(2)
+    ), 
+    by=c("field_size", "model")] %>% 
+    .[order(field_size, model), ] 
 
+#/*----------------------------------*/
+#' ##  create figures and tables
+#/*----------------------------------*/
+source(here("Codes", "3_make_figures_tables.R"))
 ```
 
 =======
@@ -160,19 +172,59 @@ theme_update(
 
 # Methods 
 
-## results 1
+## Linear Regression (LM)
+
+## Spatial Error Model (SER)
+
+
+## Random Forest (RF)
+
+
+## Boosted Regression Forest (BRF)
+
+## Yield prediction performance measure
+
+## EONR prediction performance measure
+
 
 # Results
 
+## Yield predictions
+Machine learning methods perform better than traditional regression methods in yield prediction.  The RMSE results for the out-of-sample yield prediction over the 1,000 simulations are displayed in Figure \@ref(fig:rmse-boxplot-pool).  
+
+- For the full field (37.3 ha) scenario, the average RMSE over 1,000 simulations is `r mean_data[field_size=="37.3 ha"&model=="RF", rmse] %>% round(2)` kg ha$^{-1}$ for the RF model, and `r mean_data[field_size=="37.3 ha"&model=="BRF", rmse] %>% round(2)` kg ha$^{-1}$ for the BRF model, which are significantly smaller than the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse] %>% round(2)` kg ha$^{-1}$) and SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse] %>% round(2)` kg ha$^{-1}$) models.  If we give RF model the best data, its RMSE will be as small as `r mean_data[field_size=="37.3 ha"&model=="RF best", rmse] %>% round(2)` kg ha$^{-1}$.
+- The trend of RMSE performance is robust to field sizes.  For smaller field sizes, the overall levels of RMSE are slightly larger (of course), but machine learning models' RMSE (RF and BRF) are consistently smaller than the RMSE of traditional regression models (LM and SER). 
+
+The finding of machine learning models' better yield prediction performances is consistent with existing literature (**citations**).
+
+
+## 
+RF and BRF models have better yield predictions.  So what?
+
+Better yield prediction does not necessarily translate into better EONR 
+
+
+## Profit performances
+
+Profit performance results for different models are displayed in Figure \@ref(fig:pi-boxplot-pool).
+
+- The average profit from EONR predicted by RF model is $\$$`r mean_data[field_size=="37.3 ha"&model=="RF", profit] %>% round(2)` ha$^{-1}$ over 1,000 simulations for the full field data.  That is really low.  The BRF model is better, with profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="BRF", profit] %>% round(2)` ha$^{-1}$.  But those are still significantly lower than even the LM model ($\$$`r mean_data[field_size=="37.3 ha"&model=="LM", profit] %>% round(2)` ha$^{-1}$).  The SER model has the highest profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="SER", profit] %>% round(2)` ha$^{-1}$.
+- Even if we "cheat" and feed RF model with the best data, its profit is still only $\$$`r mean_data[field_size=="37.3 ha"&model=="RF best", profit] %>% round(2)` ha$^{-1}$ 
+- For smaller field sizes, the overall levels of profit decrease, which is not surprising as model estimations become less accurate with smaller sample sizes.  But the general trend of profit performance across models is robust to field sizes.  
+- The relative performance of BRF profit improves when field size reduces.  For the small (9.3 ha) and medium (18.7 ha) sized fields, the BRF profit outperforms LM model.  The profit gap between BRF and SER models also reduces from $\$$`r (mean_data[field_size=="37.3 ha"&model=="SER", profit] - mean_data[field_size=="37.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of large field to $\$$`r (mean_data[field_size=="18.7 ha"&model=="SER", profit] - mean_data[field_size=="18.7 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of medium field and $\$$`r (mean_data[field_size=="9.3 ha"&model=="SER", profit] - mean_data[field_size=="9.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of small field.  That may suggests machine learning is more useful for smaller field's data.
+
+
+`r run_pagebreak()`
+
 # Discussions
 
++ Yield prediction vs EONR prediction
++ Statistical efficiency is money (SER vs LM) 
+
+
 `r run_pagebreak()`
 
-# Tables
-
-`r run_pagebreak()`
-
-# Figures
+# Conclusions
 
 `r run_pagebreak()`
 
@@ -181,21 +233,18 @@ theme_update(
 
 # Figures {-}
 
-```{r profits-boxplot-pool, fig.cap="The profit performances of different models. Numbers displayed on top of boxplot bars are the mean profit (standard deviation).", echo=FALSE}
-include_graphics(here('Graphs/profits_boxplot_pool.png'))
+```{r rmse-boxplot-pool, fig.cap="The yield prediction performances of different models.", echo=FALSE, fig.width=7}
+rmse_boxplot_pool | pi_boxplot_pool
 ```
 
-```{r profits-boxplot-facet, fig.cap="The profit performances of different models. Numbers displayed on top of boxplot bars are the mean profit (standard deviation).", echo=FALSE}
-include_graphics(here('Graphs/profits_boxplot_facet.png'))
+```{r pi-boxplot-pool, fig.cap="The profit performances of different models.", echo=FALSE}
+pi_boxplot_pool
 ```
-
-
-
 
 # Tables {-}
 
 ```{r extreme-percent, echo=FALSE}
-#knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
+knitr::kable(mean_data,  format="markdown", caption='Summary Statistics')
 ```
 
 

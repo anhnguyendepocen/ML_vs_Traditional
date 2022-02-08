@@ -1,27 +1,21 @@
 
 
 
-#------ range of profit values ------#
-value_ls <- -seq(0, -gdata[,min(profit)/5] %>% ceiling()*5, by = 10)
-yaxis_min <- gdata$profit %>% min()
-yaxis_max <- gdata$profit %>% max()
+#------ range of values ------#
+value_ls <- seq(gdata[,min(rmse_cv)/200] %>% floor()*200, 
+                gdata[,max(rmse_cv)/200] %>% ceiling()*200, 
+                by = 200)
+
 
 #------ boxplot ------#
-library(tidytext)
-podg <- position_dodge(0.4)
+podg <- position_dodge(0.25)
 ggplot(data = gdata, 
-       aes(x = field_size, y = profit, fill = model)) +
+       aes(x = field_size, y = rmse_cv, fill = model)) +
     stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
     geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
-    # geom_text(data = mean_data, 
-    #           aes(x = field_size, y = profit_high,
-    #               label = paste0(round(profit, 2), " (", round(profit_sd, 2),")")),
-    #           position = podg, angle = 90, 
-    #           hjust = 0, size = 3 ) +
-    ylab('Average Profit Relative to True Optimal ($/ha)') +
+    ylab('Out-of-Sample Yield Prediction RMSE (kg/ha)') +
     xlab('') +
-    scale_y_continuous(expand = c(0, 0), breaks = value_ls, label = value_ls,
-                       limits = c(yaxis_min - 10, 0)) +
+    scale_y_continuous(breaks = value_ls, label = value_ls) +
     theme_bw() +
     theme(
         panel.grid.minor.x = element_blank(),

@@ -241,7 +241,7 @@ for(sc_i in 1:nrow(field_with_design)){
     ## -----------------------
     
     #* how many simulations to run
-    sim_range <- c(1:100)
+    sim_range <- c(401:1000)
     
     #* run pre-defined `run_analysis` function
     eonr_results <-
@@ -294,7 +294,7 @@ toc()
 
 
 #* save results
-saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_100.rds"))
+saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_600.rds"))
 
 
 

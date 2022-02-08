@@ -19,6 +19,7 @@ library(viridis)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
+library(modelsummary)
 library(here)
 theme_set(theme_bw())
 
@@ -34,7 +35,7 @@ setwd(here())
 # load results data
 # -----------------
 est_data <-
-    readRDS(here("GitControlled/Results/est_result_ls_300.rds")) %>% 
+    readRDS(here("GitControlled/Results/est_result_ls_400.rds")) %>% 
     rbindlist() %>% 
     dplyr::select(model, perform, field_col) %>% 
     unnest(perform) %>% 
@@ -53,9 +54,10 @@ est_data <- est_data %>%
     #---model name---
     .[model=="brf", model := "BRF"] %>%
     .[model=="rf", model := "RF"] %>%
+    .[model=="rf_perfect", model := "RF_PERFECT"] %>%
     .[model=="lm", model := "OLS"] %>%
     .[model=="ser_50", model := "SER"] %>%
-    .[, model := factor(model, levels = c("RF", "BRF", "OLS", "SER"))] %>% 
+    .[, model := factor(model, levels = c("RF", "RF_PERFECT", "BRF", "OLS", "SER"))] %>% 
     print()
 
 
@@ -64,9 +66,9 @@ est_data <- est_data %>%
 #' /*                           Mean and Error Bars                           */
 #' /*=========================================================================*/
 
-# --------
-# boxplot
-# --------
+# ----------------
+# boxplot: profit
+# ----------------
 gdata <- est_data
 mean_data <- gdata %>%
     .[, .(profit = mean(profit),
@@ -86,6 +88,54 @@ source(here("GitControlled/Codes/Modules/figure_boxplot_pool.R"))
 ggsave(file = here('GitControlled/Graphs/profits_boxplot_pool.png'),
        height=6,width=6.5)
 
+# ----------------
+# boxplot: RMSE
+# ----------------
+gdata <- est_data
+source(here("GitControlled/Codes/Modules/figure_boxplot_rmse_pool.R"))
+ggsave(file = here('GitControlled/Graphs/rmse_boxplot_pool.png'),
+       height=6,width=6.5)
+
+# --------------------
+# Table: mean and sd 
+# --------------------
+
+profit_summary_table <- datasummary(
+    (profit) * model ~ factor(field_size) * (Mean + SD), 
+    data = gdata[, .(field_size, model, profit)])
+rmse_summary_table <- datasummary(
+    (rmse_cv) * model ~ factor(field_size) * (Mean + SD), 
+    data = gdata[, .(field_size, model, rmse_cv)])
+
+mean_data <- gdata %>%
+    .[, .(profit = mean(profit),
+          profit_sd = sd(profit),
+          rmse = mean(rmse_cv),
+          rmse_sd = sd(rmse_cv)
+    ), 
+    by=c("field_size", "model")] %>% 
+    .[order(field_size, model), ] %>% 
+    print()
+
+
+# # Tables {-}
+# 
+# ```{r extreme-percent, echo=FALSE}
+# knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
+# ```
+
+# extreme_percent <- pi_data[, .(count = sum(profit<(-40)), 
+#                                nsim = length(sim)), 
+#                            by=.(field_col, design, model)] %>%
+#     .[, extreme_percent := round(count/nsim*100, 2)] %>%
+#     #--- Long to Wide: dcast()
+#     dcast(field_col+design~model, value.var="extreme_percent") %>%
+#     data.table() %>%
+#     .[order(field_col, GWR),] %>%
+#     .[field_col==144,] %>% 
+#     print()
+# write.csv(extreme_percent, here('Graph/tables/extreme_percent.csv'))
+
 
 
 #' /*=========================================================================*/
@@ -103,21 +153,7 @@ ggsave(file = here('GitControlled/Graphs/profits_kernel.png'),
 
 
 
-# -------------------------
-# extreme values of profit 
-# -------------------------
-# set <-40 $/ha as extremely low profit
-extreme_percent <- pi_data[, .(count = sum(profit<(-40)), 
-                               nsim = length(sim)), 
-                           by=.(field_col, design, model)] %>%
-    .[, extreme_percent := round(count/nsim*100, 2)] %>%
-    #--- Long to Wide: dcast()
-    dcast(field_col+design~model, value.var="extreme_percent") %>%
-    data.table() %>%
-    .[order(field_col, GWR),] %>%
-    .[field_col==144,] %>% 
-    print()
-write.csv(extreme_percent, here('Graph/tables/extreme_percent.csv'))
+
 
 
 
