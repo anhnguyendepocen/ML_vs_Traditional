@@ -105,7 +105,6 @@ theme_update(
 )
 ```
 
-<<<<<<< HEAD:Writing/manuscript.rmd
 
 ```{r include = FALSE}
 # /*===========================================================
@@ -115,47 +114,47 @@ theme_update(
 # fs::dir_ls(here("Codes", "Functions"), full.names = TRUE) %>%
 #   lapply(., function(x) source(x))
 
-#/*----------------------------------*/
+# /*----------------------------------*/
 #' ##  data preparation
-#/*----------------------------------*/
+# /*----------------------------------*/
 #' load results data
 est_data <-
-    readRDS(here("Results", "est_result_ls_400.rds")) %>% 
-    rbindlist() %>% 
-    dplyr::select(model, perform, field_col) %>% 
-    unnest(perform) %>% 
-    data.table() 
+  readRDS(here("Results", "est_result_ls_400.rds")) %>%
+  rbindlist() %>%
+  dplyr::select(model, perform, field_col) %>%
+  unnest(perform) %>%
+  data.table()
 #' rename columns
 gdata <- est_data %>%
-    .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>% 
-    #---field size---
-    .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
-    .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>% 
-    #---model name---
-    .[model=="brf", model := "BRF"] %>%
-    .[model=="rf", model := "RF"] %>%
-    .[model=="rf_perfect", model := "RF best"] %>%
-    .[model=="lm", model := "LM"] %>%
-    .[model=="ser_50", model := "SER"] %>%
-    .[, model := factor(model, levels = c("RF", "RF best", "BRF", "LM", "SER"))] 
+  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>%
+  #---field size---
+  .[, field_size := paste0(round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
+  .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>%
+  #---model name---
+  .[model == "brf", model := "BRF"] %>%
+  .[model == "rf", model := "RF"] %>%
+  .[model == "rf_perfect", model := "RF best"] %>%
+  .[model == "lm", model := "LM"] %>%
+  .[model == "ser_50", model := "SER"] %>%
+  .[, model := factor(model, levels = c("RF", "RF best", "BRF", "LM", "SER"))]
 #' mean and sd
 mean_data <- gdata %>%
-    .[, .(profit = mean(profit) %>% round(2),
-          profit_sd = sd(profit) %>% round(2),
-          rmse = mean(rmse_cv) %>% round(2),
-          rmse_sd = sd(rmse_cv) %>% round(2)
-    ), 
-    by=c("field_size", "model")] %>% 
-    .[order(field_size, model), ] 
+  .[, .(
+    profit = mean(profit) %>% round(2),
+    profit_sd = sd(profit) %>% round(2),
+    rmse = mean(rmse_cv) %>% round(2),
+    rmse_sd = sd(rmse_cv) %>% round(2)
+  ),
+  by = c("field_size", "model")
+  ] %>%
+  .[order(field_size, model), ]
 
-#/*----------------------------------*/
+# /*----------------------------------*/
 #' ##  create figures and tables
-#/*----------------------------------*/
+# /*----------------------------------*/
 source(here("Codes", "3_make_figures_tables.R"))
 ```
 
-=======
->>>>>>> updated files:Writing/manuscript_gwr.rmd
 **Abstract**: 
  
 **Keywords**: 
@@ -244,7 +243,7 @@ pi_boxplot_pool
 # Tables {-}
 
 ```{r extreme-percent, echo=FALSE}
-knitr::kable(mean_data,  format="markdown", caption='Summary Statistics')
+knitr::kable(mean_data, format = "markdown", caption = "Summary Statistics")
 ```
 
 
