@@ -143,7 +143,6 @@ yaxis_max <- gdata$profit %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
-<<<<<<< HEAD
 pi_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
@@ -167,8 +166,6 @@ pi_boxplot <-
         axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         axis.text=element_text(color='black')
     )
-=======
-pi_boxplot_pool <-
   gdata %>%
   ggplot(
     data = .,
@@ -195,7 +192,6 @@ pi_boxplot_pool <-
     axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
     axis.text = element_text(color = "black")
   )
->>>>>>> origin/master
 
 # /*===========================================================
 #' # Boxplot of yield RMSE
@@ -213,7 +209,6 @@ yaxis_max <- gdata$rmse_cv %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
-<<<<<<< HEAD
 rmse_yield_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
@@ -237,7 +232,6 @@ rmse_yield_boxplot <-
         axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         axis.text=element_text(color='black')
     )
-=======
 rmse_boxplot_pool <-
   gdata %>%
   ggplot(
@@ -263,7 +257,6 @@ rmse_boxplot_pool <-
     axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
     axis.text = element_text(color = "black")
   )
->>>>>>> origin/master
 
 
 # /*===========================================================
