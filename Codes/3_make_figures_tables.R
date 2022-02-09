@@ -133,7 +133,7 @@
 # /*===========================================================
 #' # Boxplot of profit
 # /*===========================================================
-# fig.id = "pi-boxplot-pool",
+# fig.id = "pi-boxplot",
 # fig.cap = "The profit performances of different models"
 
 #------ range of profit values ------#
@@ -143,7 +143,7 @@ yaxis_max <- gdata$profit %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
-pi_boxplot_pool <- 
+pi_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
        aes(x = field_size, y = profit, fill = model)) +
@@ -168,9 +168,9 @@ pi_boxplot_pool <-
     )
 
 # /*===========================================================
-#' # Boxplot of RMSE
+#' # Boxplot of yield RMSE
 # /*===========================================================
-# fig.id = "rmse-boxplot-pool",
+# fig.id = "rmse-yield-boxplot",
 # fig.cap = "The yield prediction performances of different models"
 
 #------ range of values ------#
@@ -182,7 +182,7 @@ yaxis_max <- gdata$rmse_cv %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
-rmse_boxplot_pool <- 
+rmse_yield_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
        aes(x = field_size, y = rmse_cv, fill = model)) +
@@ -205,6 +205,47 @@ rmse_boxplot_pool <-
         axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         axis.text=element_text(color='black')
     )
+
+
+# /*===========================================================
+#' # Boxplot of EONR RMSE
+# /*===========================================================
+# fig.id = "rmse-eonr-boxplot",
+# fig.cap = "The yield prediction performances of different models"
+
+#------ range of values ------#
+value_ls <- seq(gdata[,min(rmse_eonr)/200] %>% floor()*200, 
+                gdata[,max(rmse_eonr)/200] %>% ceiling()*200, 
+                by = 200)
+yaxis_min <- gdata$rmse_cv %>% min()
+yaxis_max <- gdata$rmse_cv %>% max()
+podg <- position_dodge(0.4)
+
+#------ boxplot ------#
+rmse_eonr_boxplot <- 
+    gdata %>% 
+    ggplot(data = ., 
+           aes(x = field_size, y = rmse_eonr, fill = model)) +
+    stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
+    geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
+    ylab('Out-of-Sample Yield Prediction RMSE (kg/ha)') +
+    xlab('') +
+    scale_y_continuous(breaks = value_ls, label = value_ls) +
+    coord_cartesian(ylim = c(yaxis_min, yaxis_max - 2000)) +
+    theme_bw() +
+    theme(
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position='bottom',
+        legend.title = element_blank(),
+        legend.key.size = unit(0.4, 'cm'),
+        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+        # legend.margin=margin(t = -0.5, unit='cm'),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        axis.text=element_text(color='black')
+    )
+
 
 
 # /*===========================================================
