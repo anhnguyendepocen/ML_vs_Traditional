@@ -1,5 +1,5 @@
 ---
-title: "Pitfall of Prediction-orienterd Machined Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
+title: "Pitfall of Prediction-orienterd Machine Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
@@ -167,9 +167,19 @@ source(here("GitControlled", "Codes", "3_make_figures_tables.R"))
 
 # Introduction
 
+Prediction-oriented ML methods swept the field of optimal input management as if yield prediction is the ultimate goal. RF in particular is used a lot. 
+
+Apply ML without any clear purposes of how to use the trained models. 
+
 + Traditional vs ML (LM, SER better than RF and BRF)
 + Yield prediction vs EONR prediction
-+ Statistical efficiency is money (SER vs LM) 
++ Statistical efficiency is money (SER vs LM)
+
+The main purpose of this study is to compare the performance of prediction-oriented ML methods and traditional linear regreression approaches in terms of the profitability of estimated site-specific nitrogen recommendation. Since the true site-specific EONR and maximum profit achievable is never observable for real fields, testing the statistical and economic properties of statistical methods have to rely on simulation analysis where the data generating process is known to the researcher. We conduct MC simualtions for three different field sizes to test the economic performance of linear model OLS, linear model SER, Random Fores, and Boosted Regression Forest, where the true yield follows a quadratic plateau functional form. 
+
+We found that while the prediction-oriented ML methods (RF and BRF) perform much better than the traditional methods (LM and SER) in predicting yield level, they perform worse than the traditional methods (LM and SER) in predicting EONR and thus in profitability of site-specific EONR recommendation. SER in particular performs the best in profitability. The economic value of its statistical efficiency over the LM approach is not negligible at <span style = "color: blue;"> Xiafei, put numbers here </span>. Our results provide a cautionary tale for those who place unsubstantiated and blind trust in prediction-oriented ML methods and apply them when the accurate estimation of ceteris paribus causal impacts of the variable of interest is warranted. 
+
+
 
 # Methods: Monte Carlo Simulation
 
