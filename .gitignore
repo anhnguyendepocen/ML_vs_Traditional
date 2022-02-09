@@ -2,3 +2,4 @@ Results/*
 Graphs/*.png
 .DS_Store
 Writing/*.docx
+Writing/*cache/*

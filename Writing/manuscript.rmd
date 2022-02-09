@@ -23,32 +23,34 @@ output:
        style: Table Caption
        pre: "Table "
        sep: ": "
-bibliography: PA.bib
-csl: american-journal-of-agricultural-economics.csl
+# bibliography: PA.bib
+# csl: american-journal-of-agricultural-economics.csl
 abstract: ""
 ---
 
-```{r echo = F, cache = F}
-suppressMessages(library(knitr))
-suppressMessages(library(here))
-suppressMessages(library(officedown))
-suppressMessages(library(officer))
+```{r echo = F, cache = F, include = F}
+library(knitr)
+library(here)
+
+here::i_am("GitControlled/Writing/manuscript.rmd")
 
 opts_chunk$set(
   fig.align = "center",
   fig.retina = 5,
   warning = F,
   message = F,
-  cache = F,
+  cache = T,
   echo = F,
   fig.cap = TRUE
 )
 ```
 
-```{r cache = F}
+```{r cache = F, include = F}
 #--- packages ---#
 library(data.table)
 library(tidyverse)
+library(officedown)
+library(officer)
 library(flextable)
 library(stringr)
 library(sf)
@@ -119,7 +121,7 @@ theme_update(
 # /*----------------------------------*/
 #' load results data
 est_data <-
-  readRDS(here("Results", "est_result_ls_400.rds")) %>%
+  readRDS(here("Shared", "Results", "est_result_ls_400.rds")) %>%
   rbindlist() %>%
   dplyr::select(model, perform, field_col) %>%
   unnest(perform) %>%
@@ -152,7 +154,7 @@ mean_data <- gdata %>%
 # /*----------------------------------*/
 #' ##  create figures and tables
 # /*----------------------------------*/
-source(here("Codes", "3_make_figures_tables.R"))
+source(here("GitControlled", "Codes", "3_make_figures_tables.R"))
 ```
 
 **Abstract**: 
@@ -169,22 +171,86 @@ source(here("Codes", "3_make_figures_tables.R"))
 + Yield prediction vs EONR prediction
 + Statistical efficiency is money (SER vs LM) 
 
-# Methods 
+# Methods: Monte Carlo Simulation
 
-## Linear Regression (LM)
+In our Monte Carlo simulations, we will test five estimation approches on three different sizes of fields: x ha, y ha, and x ha. In this section, we describe the data generating process, estimation approaches, and model evaluation. 
 
-## Spatial Error Model (SER)
+## Data Generation
 
+Three simulated field of different sizes were created. Figure \@ref(fig:field-map) provides the map of a z-acre field as an example. The field consisted of $384$ 18.3 m $\times$ 73.2 m "plots," each of which was assigned an N fertilizer application rate. Each plot was made up of four (4-rows $\times$ 1-column) 18.3 m $\times$ 18.3 m "subplots," which were unit of analysis used in subsequent statistical analysis. Each subplot contained of a 6-rows $\times$ 6-columns grid of thirty-six 3.05 m $\times$ 3.05 m "cells." All field characteristics and yield data were generated at the cell level. 
 
-## Random Forest (RF)
+Data were generated at the cell-level and then aggregted up to analysis-unit levle (why). Cell-levle yields were generated following the quadratic-plateau functional form as follows:
 
+$$
+\begin{aligned}
+y_{i,j} = 
+  \begin{cases}
+  \alpha_{i,j} + \beta_{i,j} N + \gamma_{i,j} N^2 + \varepsilon_{i,j}, & N < \tau_{i,j} \\
+  \eta_{i,j}, & N \geq \tau_{i,j}
+  \end{cases}
+\end{aligned}
+$$
 
-## Boosted Regression Forest (BRF)
+In this formualtion, yield increases as $N_{i,j}$ increaes until $N_{i,j}$ reaches $\tau_{i,j}$, at which yield hits the plateau, $\eta_{i,j}$. The yield level at $N_{i,j}= 0$ is $\alpha_{i,j}$. The rate at which yield increases with repsect to $N_{i,j}$ is governed by $\beta_{i,j}$ and $\gamma_{i,j}$. 
 
-## Yield prediction performance measure
+Farmers do not observe any of the parameters, but observe the decomposition of the parameters that goven the yield resopnse function. Specifically,
 
-## EONR prediction performance measure
+$$
+\begin{aligned}
+\alpha_{i,j} & = \alpha^1_{i,j} + \alpha^2_{i,j} \\
+\tau_{i,j} & = min\big(min(\tau^{1,1}_{i,j}, \tau^{1,2}_{i,j}), min(\tau^{2,1}_{i,j}, \tau^{2,2}_{i,j})\big) \\
+\eta_{i,j} & = min\big(min(\eta^{1,1}_{i,j}, \eta^{1,2}_{i,j}), min(\eta^{2,1}_{i,j}, \eta^{2,2}_{i,j})\big) 
+\end{aligned}
+$$
 
+We denote the collection of covariate ($\alpha^1_{i,j}$, $\alpha^2_{i,j}$, $\tau^{1,1}_{i,j}$, $\tau^{1,2}_{i,j}$, $\tau^{2,1}_{i,j}$, $\tau^{2,2}_{i,j}$, $\eta^{1,1}_{i,j}$, $\eta^{1,2}_{i,j}$, $\eta^{2,1}_{i,j}$, $\eta^{2,2}_{i,j}$) as $X^1_{i,j}$. Note that $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ (or equivalently $X^1_{i,j}$) have sufficient information to completely characterize the yield response function. This is because the coefficients $\beta_{i,j}$ and $\gamma_{i,j}$ are identified once $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ are determined. These covariates are generated in a way that they are spatially correlated and also correlated with one another (Please see the codes available at <span style = "color: blue;"> gihutb account here</span>).
+
+In addition to the covariates, two nuisance covariates that are correlated with eahc of $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ are generated: $\phi^{\alpha, 1}_{i,j}$, $\phi^{\alpha, 2}_{i,j}$, $\phi^{\tau, 1}_{i,j}$, $\phi^{\tau, 2}_{i,j}$, $\phi^{\eta, 1}_{i,j}$, $\phi^{\eta, 2}_{i,j}$. We denote these variables as $X^2_{i,j}$. These variables are nuisance in the sense that they provide no additional information about the yield response functions once $X^1_{i,j}$ are included as covariates. Since they are correlated with $X^1_{i,j}$, the inclusion of $X^2_{i,j}$ would interfere with accurate identification of the $X^1_{i,j}$. We denote $X^1_{i,j}$ and $X^2_{i,j}$ collectively as $X_{i,j}$. Once the cell-level variables are generated, true economically optimal can be found by solving the profit maximization problem. This process is repeated 1000 times to create 1000 datasets. See Appendix \@ref(parameters) for maps of some of the covariates and true EONR for a single simulation round as an example. The cell level data were then aggregated up to the analysis unit level data: $\{y_i, X_i\}$.
+
+## Estamation of yield response functions and site-specific optimal nitrogen rates
+
+**Approach 1**: Linear Model OLS (Hereafter, LM)
+
+The LM approach assumes a quadratic yield response function:
+
+$$
+\begin{aligned}
+y_i = \beta_0 + \beta_1 \cdot N_i + \beta_2\cdot N_i^2 + N_i\cdot X_i\cdot \gamma_1 + N_i^2\cdot X_i\cdot \gamma_2 + \varepsilon
+\end{aligned}
+$$
+
+where $\gamma_1$ and $\gamma_2$ are sets of interactions of $X_i$ with $N_i$, and $\varepsilon$ is the error term. The model is certainly misspecified because quadratic functions cannot perfectly represent yield response functions with a plateau (cite). It is known that the use of the quadratic functional form tends to over-estimate the true optimal nitrogen rate. However, it still approximates the underlying yield response functions quite well and is a popular functional form (cite). The _feols_ package in R was used to estimate the model (cite). 
+
+**Approach 2**: Spatial Error Model (SER) 
+
+The econometic model for the SER approach follows that of the LM approach except for the error term.
+
+$$
+\begin{aligned}
+y_i &= \beta_0 + \beta_1 \cdot N_i + \beta_2\cdot N_i^2 + N_i\cdot X_i\cdot \gamma_1 + N_i^2\cdot X_i\cdot \gamma_2 + \varepsilon \\
+\varepsilon & = \lambda W \mu
+\end{aligned}
+$$
+
+where $\lambda$ is scaler that reflects the degree of spatial dependence, $W$ is the user-defined weight matrix, and $\mu$ is the idiosynctaric error term that is not spatially correlated. Estimation via the spatial error model takes into account the spatial dependency of the error term and thus statistically more  efficient than the LM approach. The _spatialreg_ package in R was used to estimate the model (cite).  
+
+**Approach 3**: Random Forest (RF)
+
+Unlike the LM and SER approaches, it does not assume any particular functional relationships between the dependent vairable and the covaraites. Random Forest consists of ensembles of trees. In each tree, the train data is split into a number of leaves based on the covirate values and all the observations belonging to the same leaf share the same yield estimate. Unlike a single classification and regression tree (CART), RF tends to avoid overfitting thanks to the averaging of estimates from the individual trees. The RF approach uses all the variables $(X_{i})$ as covariates.
+
+**Approach 4**: best Random Forest (RF$_{best}$)
+
+The RF$_{best}$ approach uses $\alpha$, $\beta$, and $\gamma$ directly to give a comparative advantage to RF relative to the other methods, instead of $(X_{i})$. 
+
+**Approach 5**: Boosted Regression Forest (BRF)
+
+While RF builds individual trees completely independent of one another, BRF build trees in a way that focuses relatively more on imroving the parts of the data that are not well explained in the previous sequence of trees. Consequently, BRF tends to perform better than RF in predicting yield. However, its use in the context of site-specific input management is limited compared to RF at the moment. The BRF approach uses all the covaraites in $X$ like the LM, SER, and RF approaches. The _grf_ package in R was used to run the RF, RF$_{best}$, and BRF estimations (cite). Hyperparameters were tuned using cross-validation.  
+
+For all the approches, once the yield response functions are estimated, site-specific EONR are calculated by numerically solving profit maximization problems at the cell level. Corn and nitrogen prices are assumed to be <span style = "color: blue;"> Xiaofei, put numbers here </span>. The codes to implement the MC simulations are publicly accessible at <span style = "color: blue;"> github account</span>. 
+
+## Performance Measurement
+
+For a given simulation round, we calculate root mean squared error (RMSE) of yield and EONR predictions and profit deficit for each approach. Profit deficit is defined as the true maximum profit less the profit obtained by following the estimated site-specifc EONR. To calculate these measures for a given simulation round, the dataset from another simulation round is used as the test dataset. This practice works as datasets across simulation rounds are created independently while following the same data generating process.
 
 # Results
 
