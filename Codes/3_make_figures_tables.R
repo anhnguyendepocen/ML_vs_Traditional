@@ -5,10 +5,10 @@
 #' # fig.id = "field-layout",
 #' # fig.cap = "Simulated field layout with spatial unit definitions",
 #' # fig.dim = c(6, 6)
-#' 
+#'
 #' field_with_design <- readRDS(here("Data/field_with_design.rds"))
 #' field_sf <- field_with_design[1, ]$field_sf[[1]]
-#' 
+#'
 #' plot_sf <-
 #'   field_sf %>%
 #'   nest_by(plot_id) %>%
@@ -17,7 +17,7 @@
 #'   )) %>%
 #'   unnest() %>%
 #'   st_as_sf()
-#' 
+#'
 #' block_sf <-
 #'   field_sf %>%
 #'   nest_by(block_id) %>%
@@ -26,9 +26,9 @@
 #'   )) %>%
 #'   unnest() %>%
 #'   st_as_sf()
-#' 
+#'
 #' block_text_sf <- st_centroid(block_sf)
-#' 
+#'
 #' #* Field: plots and blocks
 #' g_field <-
 #'   ggplot() +
@@ -49,10 +49,10 @@
 #'   ) +
 #'   theme_void() +
 #'   ggtitle("Panel (a): Plots and blocks in an experimental field")
-#' 
+#'
 #' ## inside a plot
 #' plot_sf_focus <- filter(field_sf, plot_id == 1)
-#' 
+#'
 #' subplot_sf <-
 #'   plot_sf_focus %>%
 #'   nest_by(aunit_id, buffer) %>%
@@ -67,11 +67,11 @@
 #'     paste0("subplot-", aunit_id - 1)
 #'   )) %>%
 #'   mutate(buf_or_not = ifelse(label == "buffer", "buffer", "subplot"))
-#' 
+#'
 #' subplot_text_sf <- st_centroid(subplot_sf)
-#' 
+#'
 #' site_sf <- plot_sf_focus[7, ]
-#' 
+#'
 #' g_inside_plot <-
 #'   ggplot() +
 #'   geom_sf(data = plot_sf_focus, size = 0.2, fill = NA) +
@@ -86,30 +86,30 @@
 #'     legend.text = element_text(size = 12)
 #'   ) +
 #'   ggtitle("Panel (b): Subplots, buffers, and sites in a single plot")
-#' 
+#'
 #' g_layout <- g_field / g_inside_plot
-#' 
+#'
 #' # /*===========================================================
 #' #' # Experimental Design
 #' # /*===========================================================
 #' # fig.id = "field-N-design",
 #' # fig.cap = "Experiment design of nitrogen (N) rates"
-#' 
+#'
 #' reg_data <-
 #'   readRDS(here("Data/LatinSquareFixed_144.rds")) %>%
 #'   pull(reg_data) %>%
 #'   .[[1]] %>%
 #'   .[1]
-#' 
+#'
 #' data <- reg_data$data[[1]]
-#' 
+#'
 #' N_levels <- reg_data$N_levels[[1]]
-#' 
+#'
 #' data <-
 #'   data %>%
 #'   .[, Nid := as.numeric(as.factor(Nid))] %>%
 #'   .[, Ntg := N_levels[Nid]]
-#' 
+#'
 #' f <-
 #'   left_join(field_sf, data[, .(aunit_id, Ntg)], by = "aunit_id") %>%
 #'   data.table() %>%
@@ -117,7 +117,7 @@
 #'   .[buffer == 1, Ntg := "buffer"] %>%
 #'   .[, Ntg := factor(Ntg, levels = c("buffer", as.character(levels(Ntg)[-7])))] %>%
 #'   st_as_sf()
-#' 
+#'
 #' g_exp <-
 #'   ggplot() +
 #'   geom_sf(data = f, aes(fill = (Ntg)), size = 0.1) +
@@ -137,12 +137,13 @@
 # fig.cap = "The profit performances of different models"
 
 #------ range of profit values ------#
-value_ls <- -seq(0, -gdata[,min(profit)/5] %>% ceiling()*5, by = 10)
+value_ls <- -seq(0, -gdata[, min(profit) / 5] %>% ceiling() * 5, by = 10)
 yaxis_min <- gdata$profit %>% min()
 yaxis_max <- gdata$profit %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
+<<<<<<< HEAD
 pi_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
@@ -166,6 +167,35 @@ pi_boxplot <-
         axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         axis.text=element_text(color='black')
     )
+=======
+pi_boxplot_pool <-
+  gdata %>%
+  ggplot(
+    data = .,
+    aes(x = field_size, y = profit, fill = model)
+  ) +
+  stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
+  geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
+  ylab("Profit Relative to True Optimal ($/ha)") +
+  xlab("") +
+  scale_y_continuous(
+    expand = c(0, 0), breaks = value_ls, label = value_ls,
+    limits = c(yaxis_min - 10, 0)
+  ) +
+  theme_bw() +
+  theme(
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.key.size = unit(0.4, "cm"),
+    # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+    # legend.margin=margin(t = -0.5, unit='cm'),
+    axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+    axis.text = element_text(color = "black")
+  )
+>>>>>>> origin/master
 
 # /*===========================================================
 #' # Boxplot of yield RMSE
@@ -174,14 +204,16 @@ pi_boxplot <-
 # fig.cap = "The yield prediction performances of different models"
 
 #------ range of values ------#
-value_ls <- seq(gdata[,min(rmse_cv)/200] %>% floor()*200, 
-                gdata[,max(rmse_cv)/200] %>% ceiling()*200, 
-                by = 200)
+value_ls <- seq(gdata[, min(rmse_cv) / 200] %>% floor() * 200,
+  gdata[, max(rmse_cv) / 200] %>% ceiling() * 200,
+  by = 200
+)
 yaxis_min <- gdata$rmse_cv %>% min()
 yaxis_max <- gdata$rmse_cv %>% max()
 podg <- position_dodge(0.4)
 
 #------ boxplot ------#
+<<<<<<< HEAD
 rmse_yield_boxplot <- 
     gdata %>% 
     ggplot(data = ., 
@@ -205,6 +237,33 @@ rmse_yield_boxplot <-
         axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         axis.text=element_text(color='black')
     )
+=======
+rmse_boxplot_pool <-
+  gdata %>%
+  ggplot(
+    data = .,
+    aes(x = field_size, y = rmse_cv, fill = model)
+  ) +
+  stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
+  geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
+  ylab("Out-of-Sample Yield Prediction RMSE (kg/ha)") +
+  xlab("") +
+  scale_y_continuous(breaks = value_ls, label = value_ls) +
+  coord_cartesian(ylim = c(yaxis_min, yaxis_max - 2000)) +
+  theme_bw() +
+  theme(
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.key.size = unit(0.4, "cm"),
+    # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+    # legend.margin=margin(t = -0.5, unit='cm'),
+    axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+    axis.text = element_text(color = "black")
+  )
+>>>>>>> origin/master
 
 
 # /*===========================================================
@@ -259,7 +318,7 @@ rmse_eonr_boxplot <-
 #   here("Results", "aunit_sim_single.rds") %>%
 #   readRDS() %>%
 #   .[, type := ifelse(transfer == 0, "GWR-R", "GWR-T")]
-# 
+#
 # plot_data <-
 #   single_sim %>%
 #   .[type == "GWR-R", ] %>%
@@ -268,14 +327,14 @@ rmse_eonr_boxplot <-
 #   .[, type := ifelse(str_detect(variable, "hat"), "Estimated", "True")] %>%
 #   .[, variable := gsub("_hat", "", variable)] %>%
 #   dcast(aunit_id + variable ~ type, value.var = "value")
-# 
+#
 # g_b1 <-
 #   plot_data[variable == "b1", ] %>%
 #   ggplot(data = .) +
 #   geom_point(aes(y = Estimated, x = True), size = 0.3) +
 #   xlim(0, NA) +
 #   ylim(0, NA)
-# 
+#
 # g_b2 <-
 #   plot_data[variable == "b2", ] %>%
 #   ggplot(data = .) +
@@ -283,7 +342,7 @@ rmse_eonr_boxplot <-
 #   geom_hline(yintercept = 0, color = "red") +
 #   xlim(NA, 0.1) +
 #   ylim(NA, 0.1)
-# 
+#
 # g_comp_coef <- g_b1 / g_b2
 
 # /*===========================================================
@@ -323,15 +382,15 @@ rmse_eonr_boxplot <-
 #' # /*===========================================================
 #' # fig.id = "why-bias-many",
 #' # fig.cap = "The cause of significant over-estimation of the value of GWR-based VRA"
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Prepare parameters
 #' # /*+++++++++++++++++++++++++++++++++++
 #' field_parameters <- readRDS(here("Data/field_parameters.rds"))
-#' 
+#'
 #' pCorn <- field_parameters$pCorn
 #' pN <- field_parameters$pN
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Prepare yield response curves
 #' # /*+++++++++++++++++++++++++++++++++++
@@ -346,7 +405,7 @@ rmse_eonr_boxplot <-
 #'       "opt_N", "opt_N_gwr", "opt_N_scam"
 #'     )
 #'   ]
-#' 
+#'
 #' n_data <-
 #'   data.table(
 #'     N = seq(
@@ -355,20 +414,20 @@ rmse_eonr_boxplot <-
 #'       length = 30
 #'     )
 #'   )
-#' 
+#'
 #' set.seed(710527)
 #' aunit_id_ls <- sample(il_data_oe$aunit_id, 50)
-#' 
+#'
 #' gwr_curv_data <-
 #'   expand_grid_df(il_data_oe, n_data) %>%
 #'   .[, yield := (b0_hat + b1_hat * N + b2_hat * N^2) / 1000] %>%
 #'   .[, profit := pCorn * yield * 1000 - pN * N] %>%
 #'   .[aunit_id %in% aunit_id_ls, ]
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Prepare point data
 #' # /*+++++++++++++++++++++++++++++++++++
-#' 
+#'
 #' point_data <-
 #'   il_data_oe %>%
 #'   .[, y_hat_gwr := (b0_hat + b1_hat * opt_N_gwr + b2_hat * opt_N_gwr^2) / 1000] %>%
@@ -381,7 +440,7 @@ rmse_eonr_boxplot <-
 #'   .[, variable := NULL] %>%
 #'   dcast(aunit_id + type ~ var_type, value.var = "value") %>%
 #'   .[, profit := pCorn * yield * 1000 - pN * N]
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Figure
 #' # /*+++++++++++++++++++++++++++++++++++
@@ -404,14 +463,14 @@ rmse_eonr_boxplot <-
 #'     legend.position = "bottom"
 #'   ) +
 #'   scale_color_discrete(name = "Estiamted EONR")
-#' 
+#'
 #' # /*===========================================================
 #' #' # An illustration of over-estimation of the value of GWR-based VRA over SCAM-based URA
 #' # /*===========================================================
 #' # fig.id = "why-bias-single",
 #' # fig.cap = "An illustration of over-estimation of the value of GWR-based VRA over SCAM-based URA",
 #' # fig.dim = c(6, 7)
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Preapare yeld response curves
 #' # /*+++++++++++++++++++++++++++++++++++
@@ -425,16 +484,16 @@ rmse_eonr_boxplot <-
 #'   .[, profit := pCorn * yield * 1000 - pN * N] %>%
 #'   .[, .(yield, profit, N)] %>%
 #'   .[, type := "True"]
-#' 
+#'
 #' gwr_curv_data_f <-
 #'   gwr_curv_data[aunit_id %in% aunit_id_ls[1], ] %>%
 #'   .[, .(yield, profit, N)] %>%
 #'   .[, type := "GWR-estimated"]
-#' 
+#'
 #' curv_data <-
 #'   rbind(true_curv_data, gwr_curv_data_f) %>%
 #'   .[, type := factor(type, levels = c("True", "GWR-estimated"))]
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Prepare yield points data
 #' # /*+++++++++++++++++++++++++++++++++++
@@ -454,10 +513,10 @@ rmse_eonr_boxplot <-
 #'     variable == "opt_N", "True"
 #'   )] %>%
 #'   .[, .(yield, profit, N, type)]
-#' 
+#'
 #' point_data_gwr <-
 #'   point_data[aunit_id %in% aunit_id_ls[1], ]
-#' 
+#'
 #' # /*+++++++++++++++++++++++++++++++++++
 #' #' # Figure
 #' # /*+++++++++++++++++++++++++++++++++++
@@ -471,7 +530,7 @@ rmse_eonr_boxplot <-
 #'   scale_color_discrete(name = "EONR") +
 #'   scale_linetype_discrete(name = "Yield Response Fnctions") +
 #'   ggtitle("(a) Estimated and True Yields")
-#' 
+#'
 #' g_profit <-
 #'   ggplot() +
 #'   geom_line(data = curv_data, aes(y = profit / 1000, x = N, linetype = type)) +
@@ -482,5 +541,5 @@ rmse_eonr_boxplot <-
 #'   scale_color_discrete(name = "EONR") +
 #'   scale_linetype_discrete(name = "Profit Response Fnctions") +
 #'   ggtitle("(b) Estimated and True Profits")
-#' 
+#'
 #' g_why_bias_single <- g_yield / g_profit

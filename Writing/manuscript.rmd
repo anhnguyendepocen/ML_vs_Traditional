@@ -1,5 +1,5 @@
 ---
-title: "Comparing Machine Learning and Traditional Regression Methods in Site-Specific Economically Optimal Nitrogen Rate Prediction"
+title: "Pitfall of Prediction-orienterd Machine Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
@@ -23,32 +23,34 @@ output:
        style: Table Caption
        pre: "Table "
        sep: ": "
-bibliography: PA.bib
-csl: american-journal-of-agricultural-economics.csl
+# bibliography: PA.bib
+# csl: american-journal-of-agricultural-economics.csl
 abstract: ""
 ---
 
-```{r echo = F, cache = F}
-suppressMessages(library(knitr))
-suppressMessages(library(here))
-suppressMessages(library(officedown))
-suppressMessages(library(officer))
+```{r echo = F, cache = F, include = F}
+library(knitr)
+library(here)
+
+here::i_am("GitControlled/Writing/manuscript.rmd")
 
 opts_chunk$set(
   fig.align = "center",
   fig.retina = 5,
   warning = F,
   message = F,
-  cache = F,
+  cache = T,
   echo = F,
   fig.cap = TRUE
 )
 ```
 
-```{r cache = F}
+```{r cache = F, include = F}
 #--- packages ---#
 library(data.table)
 library(tidyverse)
+library(officedown)
+library(officer)
 library(flextable)
 library(stringr)
 library(sf)
@@ -56,8 +58,6 @@ library(lfe)
 library(modelsummary)
 library(patchwork)
 library(gridExtra)
-library(kableExtra)
-library(here)
 ```
 
 ```{r figure_setup, cache = F}
@@ -112,7 +112,6 @@ theme_update(
 # /*===========================================================
 #' # Prepare data and results for writing
 # /*===========================================================
-
 #* source all the functions in the Functions folder
 # fs::dir_ls(here("Codes", "Functions"), full.names = TRUE) %>%
 #   lapply(., function(x) source(x))
@@ -122,14 +121,14 @@ theme_update(
 # /*----------------------------------*/
 #' load results data
 est_data <-
-  readRDS(here("Shared", "Results", "est_result_ls.rds")) %>%
+  readRDS(here("Shared", "Results", "est_result_ls_400.rds")) %>%
   rbindlist() %>%
   dplyr::select(model, perform, field_col) %>%
   unnest(perform) %>%
   data.table()
 #' rename columns
 gdata <- est_data %>%
-  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>%
+  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>%
   #---field size---
   .[, field_size := paste0(round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
   .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>%
@@ -145,10 +144,8 @@ mean_data <- gdata %>%
   .[, .(
     profit = mean(profit) %>% round(2),
     profit_sd = sd(profit) %>% round(2),
-    rmse_yield = mean(rmse_cv) %>% round(2),
-    rmse_yield_sd = sd(rmse_cv) %>% round(2),
-    rmse_eonr = mean(rmse_eonr) %>% round(2),
-    rmse_eonr_sd = sd(rmse_eonr) %>% round(2)
+    rmse = mean(rmse_cv) %>% round(2),
+    rmse_sd = sd(rmse_cv) %>% round(2)
   ),
   by = c("field_size", "model")
   ] %>%
@@ -170,33 +167,107 @@ source(here("GitControlled", "Codes", "3_make_figures_tables.R"))
 
 # Introduction
 
+Prediction-oriented ML methods swept the field of optimal input management as if yield prediction is the ultimate goal. RF in particular is used a lot. 
+
+Apply ML without any clear purposes of how to use the trained models. 
+
 + Traditional vs ML (LM, SER better than RF and BRF)
 + Yield prediction vs EONR prediction
-+ Statistical efficiency is money (SER vs LM) 
++ Statistical efficiency is money (SER vs LM)
 
-# Methods 
+The main purpose of this study is to compare the performance of prediction-oriented ML methods and traditional linear regreression approaches in terms of the profitability of estimated site-specific nitrogen recommendation. Since the true site-specific EONR and maximum profit achievable is never observable for real fields, testing the statistical and economic properties of statistical methods have to rely on simulation analysis where the data generating process is known to the researcher. We conduct MC simualtions for three different field sizes to test the economic performance of linear model OLS, linear model SER, Random Fores, and Boosted Regression Forest, where the true yield follows a quadratic plateau functional form. 
 
-## Linear Regression (LM)
-
-## Spatial Error Model (SER)
+We found that while the prediction-oriented ML methods (RF and BRF) perform much better than the traditional methods (LM and SER) in predicting yield level, they perform worse than the traditional methods (LM and SER) in predicting EONR and thus in profitability of site-specific EONR recommendation. SER in particular performs the best in profitability. The economic value of its statistical efficiency over the LM approach is not negligible at <span style = "color: blue;"> Xiafei, put numbers here </span>. Our results provide a cautionary tale for those who place unsubstantiated and blind trust in prediction-oriented ML methods and apply them when the accurate estimation of ceteris paribus causal impacts of the variable of interest is warranted. 
 
 
-## Random Forest (RF)
 
+# Methods: Monte Carlo Simulation
 
-## Boosted Regression Forest (BRF)
+In our Monte Carlo simulations, we will test five estimation approches on three different sizes of fields: x ha, y ha, and x ha. In this section, we describe the data generating process, estimation approaches, and model evaluation. 
 
-## Yield prediction performance measure
+## Data Generation
 
-## EONR prediction performance measure
+Three simulated field of different sizes were created. Figure \@ref(fig:field-map) provides the map of a z-acre field as an example. The field consisted of $384$ 18.3 m $\times$ 73.2 m "plots," each of which was assigned an N fertilizer application rate. Each plot was made up of four (4-rows $\times$ 1-column) 18.3 m $\times$ 18.3 m "subplots," which were unit of analysis used in subsequent statistical analysis. Each subplot contained of a 6-rows $\times$ 6-columns grid of thirty-six 3.05 m $\times$ 3.05 m "cells." All field characteristics and yield data were generated at the cell level. 
 
+Data were generated at the cell-level and then aggregted up to analysis-unit levle (why). Cell-levle yields were generated following the quadratic-plateau functional form as follows:
 
-# Results and Discussions
+$$
+\begin{aligned}
+y_{i,j} = 
+  \begin{cases}
+  \alpha_{i,j} + \beta_{i,j} N + \gamma_{i,j} N^2 + \varepsilon_{i,j}, & N < \tau_{i,j} \\
+  \eta_{i,j}, & N \geq \tau_{i,j}
+  \end{cases}
+\end{aligned}
+$$
+
+In this formualtion, yield increases as $N_{i,j}$ increaes until $N_{i,j}$ reaches $\tau_{i,j}$, at which yield hits the plateau, $\eta_{i,j}$. The yield level at $N_{i,j}= 0$ is $\alpha_{i,j}$. The rate at which yield increases with repsect to $N_{i,j}$ is governed by $\beta_{i,j}$ and $\gamma_{i,j}$. 
+
+Farmers do not observe any of the parameters, but observe the decomposition of the parameters that goven the yield resopnse function. Specifically,
+
+$$
+\begin{aligned}
+\alpha_{i,j} & = \alpha^1_{i,j} + \alpha^2_{i,j} \\
+\tau_{i,j} & = min\big(min(\tau^{1,1}_{i,j}, \tau^{1,2}_{i,j}), min(\tau^{2,1}_{i,j}, \tau^{2,2}_{i,j})\big) \\
+\eta_{i,j} & = min\big(min(\eta^{1,1}_{i,j}, \eta^{1,2}_{i,j}), min(\eta^{2,1}_{i,j}, \eta^{2,2}_{i,j})\big) 
+\end{aligned}
+$$
+
+We denote the collection of covariate ($\alpha^1_{i,j}$, $\alpha^2_{i,j}$, $\tau^{1,1}_{i,j}$, $\tau^{1,2}_{i,j}$, $\tau^{2,1}_{i,j}$, $\tau^{2,2}_{i,j}$, $\eta^{1,1}_{i,j}$, $\eta^{1,2}_{i,j}$, $\eta^{2,1}_{i,j}$, $\eta^{2,2}_{i,j}$) as $X^1_{i,j}$. Note that $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ (or equivalently $X^1_{i,j}$) have sufficient information to completely characterize the yield response function. This is because the coefficients $\beta_{i,j}$ and $\gamma_{i,j}$ are identified once $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ are determined. These covariates are generated in a way that they are spatially correlated and also correlated with one another (Please see the codes available at <span style = "color: blue;"> gihutb account here</span>).
+
+In addition to the covariates, two nuisance covariates that are correlated with eahc of $\alpha_{i,j}$, $\tau_{i,j}$, and $\eta_{i,j}$ are generated: $\phi^{\alpha, 1}_{i,j}$, $\phi^{\alpha, 2}_{i,j}$, $\phi^{\tau, 1}_{i,j}$, $\phi^{\tau, 2}_{i,j}$, $\phi^{\eta, 1}_{i,j}$, $\phi^{\eta, 2}_{i,j}$. We denote these variables as $X^2_{i,j}$. These variables are nuisance in the sense that they provide no additional information about the yield response functions once $X^1_{i,j}$ are included as covariates. Since they are correlated with $X^1_{i,j}$, the inclusion of $X^2_{i,j}$ would interfere with accurate identification of the $X^1_{i,j}$. We denote $X^1_{i,j}$ and $X^2_{i,j}$ collectively as $X_{i,j}$. Once the cell-level variables are generated, true economically optimal can be found by solving the profit maximization problem. This process is repeated 1000 times to create 1000 datasets. See Appendix \@ref(parameters) for maps of some of the covariates and true EONR for a single simulation round as an example. The cell level data were then aggregated up to the analysis unit level data: $\{y_i, X_i\}$.
+
+## Estamation of yield response functions and site-specific optimal nitrogen rates
+
+**Approach 1**: Linear Model OLS (Hereafter, LM)
+
+The LM approach assumes a quadratic yield response function:
+
+$$
+\begin{aligned}
+y_i = \beta_0 + \beta_1 \cdot N_i + \beta_2\cdot N_i^2 + N_i\cdot X_i\cdot \gamma_1 + N_i^2\cdot X_i\cdot \gamma_2 + \varepsilon
+\end{aligned}
+$$
+
+where $\gamma_1$ and $\gamma_2$ are sets of interactions of $X_i$ with $N_i$, and $\varepsilon$ is the error term. The model is certainly misspecified because quadratic functions cannot perfectly represent yield response functions with a plateau (cite). It is known that the use of the quadratic functional form tends to over-estimate the true optimal nitrogen rate. However, it still approximates the underlying yield response functions quite well and is a popular functional form (cite). The _feols_ package in R was used to estimate the model (cite). 
+
+**Approach 2**: Spatial Error Model (SER) 
+
+The econometic model for the SER approach follows that of the LM approach except for the error term.
+
+$$
+\begin{aligned}
+y_i &= \beta_0 + \beta_1 \cdot N_i + \beta_2\cdot N_i^2 + N_i\cdot X_i\cdot \gamma_1 + N_i^2\cdot X_i\cdot \gamma_2 + \varepsilon \\
+\varepsilon & = \lambda W \mu
+\end{aligned}
+$$
+
+where $\lambda$ is scaler that reflects the degree of spatial dependence, $W$ is the user-defined weight matrix, and $\mu$ is the idiosynctaric error term that is not spatially correlated. Estimation via the spatial error model takes into account the spatial dependency of the error term and thus statistically more  efficient than the LM approach. The _spatialreg_ package in R was used to estimate the model (cite).  
+
+**Approach 3**: Random Forest (RF)
+
+Unlike the LM and SER approaches, it does not assume any particular functional relationships between the dependent vairable and the covaraites. Random Forest consists of ensembles of trees. In each tree, the train data is split into a number of leaves based on the covirate values and all the observations belonging to the same leaf share the same yield estimate. Unlike a single classification and regression tree (CART), RF tends to avoid overfitting thanks to the averaging of estimates from the individual trees. The RF approach uses all the variables $(X_{i})$ as covariates.
+
+**Approach 4**: best Random Forest (RF$_{best}$)
+
+The RF$_{best}$ approach uses $\alpha$, $\beta$, and $\gamma$ directly to give a comparative advantage to RF relative to the other methods, instead of $(X_{i})$. 
+
+**Approach 5**: Boosted Regression Forest (BRF)
+
+While RF builds individual trees completely independent of one another, BRF build trees in a way that focuses relatively more on imroving the parts of the data that are not well explained in the previous sequence of trees. Consequently, BRF tends to perform better than RF in predicting yield. However, its use in the context of site-specific input management is limited compared to RF at the moment. The BRF approach uses all the covaraites in $X$ like the LM, SER, and RF approaches. The _grf_ package in R was used to run the RF, RF$_{best}$, and BRF estimations (cite). Hyperparameters were tuned using cross-validation.  
+
+For all the approches, once the yield response functions are estimated, site-specific EONR are calculated by numerically solving profit maximization problems at the cell level. Corn and nitrogen prices are assumed to be <span style = "color: blue;"> Xiaofei, put numbers here </span>. The codes to implement the MC simulations are publicly accessible at <span style = "color: blue;"> github account</span>. 
+
+## Performance Measurement
+
+For a given simulation round, we calculate root mean squared error (RMSE) of yield and EONR predictions and profit deficit for each approach. Profit deficit is defined as the true maximum profit less the profit obtained by following the estimated site-specifc EONR. To calculate these measures for a given simulation round, the dataset from another simulation round is used as the test dataset. This practice works as datasets across simulation rounds are created independently while following the same data generating process.
+
+# Results
 
 ## Yield predictions
-Machine learning methods perform better than traditional regression methods in yield prediction.  The RMSE results for the out-of-sample yield prediction over the 1,000 simulations are displayed in Figure \@ref(fig:rmse-yield-boxplot).  
+Machine learning methods perform better than traditional regression methods in yield prediction.  The RMSE results for the out-of-sample yield prediction over the 1,000 simulations are displayed in Figure \@ref(fig:rmse-boxplot-pool).  
 
-- For the full field (37.3 ha) scenario, the average RMSE over 1,000 simulations is `r mean_data[field_size=="37.3 ha"&model=="RF", rmse_yield] %>% round(2)` kg ha$^{-1}$ for the RF model, and `r mean_data[field_size=="37.3 ha"&model=="BRF", rmse_yield] %>% round(2)` kg ha$^{-1}$ for the BRF model, which are significantly smaller than the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse_yield] %>% round(2)` kg ha$^{-1}$) and SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse_yield] %>% round(2)` kg ha$^{-1}$) models.  If we give RF model the best data, its RMSE will be as small as `r mean_data[field_size=="37.3 ha"&model=="RF best", rmse_yield] %>% round(2)` kg ha$^{-1}$.
+- For the full field (37.3 ha) scenario, the average RMSE over 1,000 simulations is `r mean_data[field_size=="37.3 ha"&model=="RF", rmse] %>% round(2)` kg ha$^{-1}$ for the RF model, and `r mean_data[field_size=="37.3 ha"&model=="BRF", rmse] %>% round(2)` kg ha$^{-1}$ for the BRF model, which are significantly smaller than the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse] %>% round(2)` kg ha$^{-1}$) and SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse] %>% round(2)` kg ha$^{-1}$) models.  If we give RF model the best data, its RMSE will be as small as `r mean_data[field_size=="37.3 ha"&model=="RF best", rmse] %>% round(2)` kg ha$^{-1}$.
 - The trend of RMSE performance is robust to field sizes.  For smaller field sizes, the overall levels of RMSE are slightly larger (of course), but machine learning models' RMSE (RF and BRF) are consistently smaller than the RMSE of traditional regression models (LM and SER). 
 
 The finding of machine learning models' better yield prediction performances is consistent with existing literature (**citations**).
@@ -207,18 +278,23 @@ RF and BRF models have better yield predictions.  So what?
 
 Better yield prediction does not necessarily translate into better EONR 
 
-EONR prediction performances for different models are displayed in Figure \@ref(fig:rmse-eonr-boxplot).
-
 
 ## Profit performances
 
-Profit performance results for different models are displayed in Figure \@ref(fig:pi-boxplot).
+Profit performance results for different models are displayed in Figure \@ref(fig:pi-boxplot-pool).
 
 - The average profit from EONR predicted by RF model is $\$$`r mean_data[field_size=="37.3 ha"&model=="RF", profit] %>% round(2)` ha$^{-1}$ over 1,000 simulations for the full field data.  That is really low.  The BRF model is better, with profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="BRF", profit] %>% round(2)` ha$^{-1}$.  But those are still significantly lower than even the LM model ($\$$`r mean_data[field_size=="37.3 ha"&model=="LM", profit] %>% round(2)` ha$^{-1}$).  The SER model has the highest profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="SER", profit] %>% round(2)` ha$^{-1}$.
 - Even if we "cheat" and feed RF model with the best data, its profit is still only $\$$`r mean_data[field_size=="37.3 ha"&model=="RF best", profit] %>% round(2)` ha$^{-1}$ 
 - For smaller field sizes, the overall levels of profit decrease, which is not surprising as model estimations become less accurate with smaller sample sizes.  But the general trend of profit performance across models is robust to field sizes.  
 - The relative performance of BRF profit improves when field size reduces.  For the small (9.3 ha) and medium (18.7 ha) sized fields, the BRF profit outperforms LM model.  The profit gap between BRF and SER models also reduces from $\$$`r (mean_data[field_size=="37.3 ha"&model=="SER", profit] - mean_data[field_size=="37.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of large field to $\$$`r (mean_data[field_size=="18.7 ha"&model=="SER", profit] - mean_data[field_size=="18.7 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of medium field and $\$$`r (mean_data[field_size=="9.3 ha"&model=="SER", profit] - mean_data[field_size=="9.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of small field.  That may suggests machine learning is more useful for smaller field's data.
 
+
+`r run_pagebreak()`
+
+# Discussions
+
++ Yield prediction vs EONR prediction
++ Statistical efficiency is money (SER vs LM) 
 
 
 `r run_pagebreak()`
@@ -232,23 +308,18 @@ Profit performance results for different models are displayed in Figure \@ref(fi
 
 # Figures {-}
 
-```{r rmse-yield-boxplot, fig.cap="The yield prediction performances of different models.", echo=FALSE, fig.width=7}
-rmse_yield_boxplot
+```{r rmse-boxplot-pool, fig.cap="The yield prediction performances of different models.", echo=FALSE, fig.width=7}
+rmse_boxplot_pool | pi_boxplot_pool
 ```
 
-```{r rmse-eonr-boxplot, fig.cap="The yield prediction performances of different models.", echo=FALSE, fig.width=7}
-rmse_eonr_boxplot
-```
-
-```{r pi-boxplot, fig.cap="The profit performances of different models.", echo=FALSE, fig.width=7}
-pi_boxplot
+```{r pi-boxplot-pool, fig.cap="The profit performances of different models.", echo=FALSE}
+pi_boxplot_pool
 ```
 
 # Tables {-}
 
 ```{r extreme-percent, echo=FALSE}
-# knitr::kable(mean_data, format = "markdown", caption = "Summary Statistics") %>% 
-#  kable_styling(font_size = 3)
+knitr::kable(mean_data, format = "markdown", caption = "Summary Statistics")
 ```
 
 
