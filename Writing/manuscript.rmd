@@ -1,5 +1,5 @@
 ---
-title: "Comparing Machine Learning and Traditional Regression Methods in Site-Specific Economically Optimal Nitrogen Rate Prediction"
+title: "Pitfall of Prediction-orienterd Machined Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
