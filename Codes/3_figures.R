@@ -117,10 +117,10 @@ est_data <- est_data %>%
     #---model name---
     .[model=="brf", model := "BRF"] %>%
     .[model=="rf", model := "RF"] %>%
-    .[model=="rf_perfect", model := "RF_PERFECT"] %>%
+    .[model=="rf_perfect", model := "RF best"] %>%
     .[model=="lm", model := "OLS"] %>%
     .[model=="ser_50", model := "SER"] %>%
-    .[, model := factor(model, levels = c("RF", "RF_PERFECT", "BRF", "OLS", "SER"))] %>% 
+    .[, model := factor(model, levels = c("RF", "RF best", "BRF", "OLS", "SER"))] %>% 
     print()
 
 
@@ -181,6 +181,29 @@ mean_data <- gdata %>%
     by=c("field_size", "model")] %>% 
     .[order(field_size, model), ] %>% 
     print()
+
+# ----------------
+# combined boxplot
+# ----------------
+gdata_long <- est_data %>% 
+    .[, .(field_size, model, sim, rmse_cv, rmse_eonr, profit)] %>% 
+    #=== Wide to Long: melt()
+    melt(id.vars = c('field_size','model','sim')) %>% 
+    #--- label field size ---#
+    .[field_size=="9.3 ha", fsize := "small"] %>% 
+    .[field_size=="18.7 ha", fsize := "medium"] %>% 
+    .[field_size=="37.3 ha", fsize := "large"] %>% 
+    print()
+for(s in unique(gdata_long$fsize)){
+    gdata <- gdata_long[fsize==s]
+    source(here("GitControlled/Codes/Modules/figure_boxplot_combined.R"))
+    ggsave(file = here("GitControlled", "Graphs", 
+                       paste0("combined_boxplot_", s, ".png")),
+           height=6,width=6.5)
+}
+
+
+
 
 
 

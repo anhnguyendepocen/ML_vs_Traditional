@@ -121,14 +121,14 @@ theme_update(
 # /*----------------------------------*/
 #' load results data
 est_data <-
-  readRDS(here("Shared", "Results", "est_result_ls_400.rds")) %>%
+  readRDS(here("Shared", "Results", "est_result_ls.rds")) %>%
   rbindlist() %>%
   dplyr::select(model, perform, field_col) %>%
   unnest(perform) %>%
   data.table()
 #' rename columns
-gdata <- est_data %>%
-  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>%
+est_data <- est_data %>%
+  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>%
   #---field size---
   .[, field_size := paste0(round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
   .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>%
@@ -140,12 +140,14 @@ gdata <- est_data %>%
   .[model == "ser_50", model := "SER"] %>%
   .[, model := factor(model, levels = c("RF", "RF best", "BRF", "LM", "SER"))]
 #' mean and sd
-mean_data <- gdata %>%
+mean_data <- est_data %>%
   .[, .(
     profit = mean(profit) %>% round(2),
     profit_sd = sd(profit) %>% round(2),
-    rmse = mean(rmse_cv) %>% round(2),
-    rmse_sd = sd(rmse_cv) %>% round(2)
+    rmse_yield = mean(rmse_cv) %>% round(2),
+    rmse_yield_sd = sd(rmse_cv) %>% round(2),
+    rmse_eonr = mean(rmse_eonr) %>% round(2),
+    rmse_eonr_sd = sd(rmse_eonr) %>% round(2)
   ),
   by = c("field_size", "model")
   ] %>%
@@ -154,6 +156,7 @@ mean_data <- gdata %>%
 # /*----------------------------------*/
 #' ##  create figures and tables
 # /*----------------------------------*/
+gdata <- est_data
 source(here("GitControlled", "Codes", "3_make_figures_tables.R"))
 ```
 
@@ -238,7 +241,7 @@ The econometic model for the SER approach follows that of the LM approach except
 $$
 \begin{aligned}
 y_i &= \beta_0 + \beta_1 \cdot N_i + \beta_2\cdot N_i^2 + N_i\cdot X_i\cdot \gamma_1 + N_i^2\cdot X_i\cdot \gamma_2 + \varepsilon \\
-\varepsilon & = \lambda W \mu
+\varepsilon & = \lambda W \varepsilon + \mu
 \end{aligned}
 $$
 
@@ -262,39 +265,98 @@ For all the approches, once the yield response functions are estimated, site-spe
 
 For a given simulation round, we calculate root mean squared error (RMSE) of yield and EONR predictions and profit deficit for each approach. Profit deficit is defined as the true maximum profit less the profit obtained by following the estimated site-specifc EONR. To calculate these measures for a given simulation round, the dataset from another simulation round is used as the test dataset. This practice works as datasets across simulation rounds are created independently while following the same data generating process.
 
-# Results
 
-## Yield predictions
-Machine learning methods perform better than traditional regression methods in yield prediction.  The RMSE results for the out-of-sample yield prediction over the 1,000 simulations are displayed in Figure \@ref(fig:rmse-boxplot-pool).  
+### Yield prediction
 
-- For the full field (37.3 ha) scenario, the average RMSE over 1,000 simulations is `r mean_data[field_size=="37.3 ha"&model=="RF", rmse] %>% round(2)` kg ha$^{-1}$ for the RF model, and `r mean_data[field_size=="37.3 ha"&model=="BRF", rmse] %>% round(2)` kg ha$^{-1}$ for the BRF model, which are significantly smaller than the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse] %>% round(2)` kg ha$^{-1}$) and SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse] %>% round(2)` kg ha$^{-1}$) models.  If we give RF model the best data, its RMSE will be as small as `r mean_data[field_size=="37.3 ha"&model=="RF best", rmse] %>% round(2)` kg ha$^{-1}$.
-- The trend of RMSE performance is robust to field sizes.  For smaller field sizes, the overall levels of RMSE are slightly larger (of course), but machine learning models' RMSE (RF and BRF) are consistently smaller than the RMSE of traditional regression models (LM and SER). 
+Root-mean-square error (RMSE) of yield prediction for a given simulation round is:
 
-The finding of machine learning models' better yield prediction performances is consistent with existing literature (**citations**).
+$$
+\begin{aligned}
+RMSE = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (\hat{y}_i - y_i)^2}
+\end{aligned}
+$$
+where $y_i$ is the true yield of location $i$ from applying the trial N rate, and $\hat{y}_i$ is the predicted yield of the same location by a certain model. The total number of locations for that simulated trial field is $n$.
+
+### EONR prediction
+
+Root-mean-square error (RMSE) of EONR prediction for a given simulation round is:
+
+$$
+\begin{aligned}
+RMSE = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (\hat{EONR}_i - EONR_i)^2}
+\end{aligned}
+$$
+where $EONR_i$ is the true economically optimal nitrogen rate of location $i$, and $\hat{EONR}_i$ is the predicted EONR for location $i$ by a certain model. The total number of locations for that simulated trial field is $n$.
+
+### Profit
+
+The production profit of location $i$ by applying the estimated site-specific EONR is:
+
+$$
+\begin{aligned}
+\pi_i = p_{corn} f(\hat{EONR}_i) - p_N N_i - C
+\end{aligned}
+$$
+where $f()$ is the true yield response function set by the simulation.
+
+The field-level profit is measured as:
+
+$$
+\begin{aligned}
+\pi = {\frac{1}{n} \sum_{i=1}^{n} (\pi_i - \pi_i^{*})}
+\end{aligned}
+$$
+where $\pi_i^{*}$ is the true maximum profit of location $i$:
+
+$$
+\begin{aligned}
+\pi_i^{*} = p_{corn} f(EONR_i) - p_N N_i - C
+\end{aligned}
+$$
+It is a relative profit measure compared the true maximum. So $\pi$ is always negative.
 
 
-## 
-RF and BRF models have better yield predictions.  So what?
+# Results and Discussions
 
-Better yield prediction does not necessarily translate into better EONR 
+## Main point 1:
+Despite machine learning models perform better in yield predicting, their EONR prediction is poor.
+
+The performances of different models in out-of-sample yield prediction, EONR prediction, and EONR profitability over 1,000 simulations are displayed in Figure \@ref(fig:comb-boxplot-large) for the large trial field (37.3 ha) scenario. 
+
+- Indeed, the simulation results showed the machine learning models perform better than traditional regression models in yield predicting. On average, the predicted yields' RMSE of RF (`r mean_data[field_size=="37.3 ha"&model=="RF", rmse_yield] %>% round(2)` kg ha$^{-1}$) and BRF (`r mean_data[field_size=="37.3 ha"&model=="BRF", rmse_yield] %>% round(2)` kg ha$^{-1}$) models are significantly smaller than that of the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse_yield] %>% round(2)` kg ha$^{-1}$) or SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse_yield] %>% round(2)` kg ha$^{-1}$) model. Those findings are consistent with existing literature (**citations**).
+- However, the better yield prediction of machine learning models does not necessarily translate into better EONR prediction. The predicted EONR's RMSE of the RF model (`r mean_data[field_size=="37.3 ha"&model=="RF", rmse_eonr] %>% round(2)` kg ha$^{-1}$) is much larger than the LM (`r mean_data[field_size=="37.3 ha"&model=="LM", rmse_eonr] %>% round(2)` kg ha$^{-1}$) or SER (`r mean_data[field_size=="37.3 ha"&model=="SER", rmse_eonr] %>% round(2)` kg ha$^{-1}$) model, meaning the RF model generates much inaccurate EONR predictions, despite its more accurate yield predictions, than LM or SER model. BRF model's EONR prediction is much better than RF model, whose RMSE (`r mean_data[field_size=="37.3 ha"&model=="BRF", rmse_eonr] %>% round(2)` kg ha$^{-1}$) is only slightly smaller than the LM model. But it is still significantly larger than the SER model.
+- Finally, the less accurate EONR predictions by machine learning models lead to lower profits. The average profit of RF model ($\$$`r mean_data[field_size=="37.3 ha"&model=="RF", profit] %>% round(2)` ha$^{-1}$) is extremely low. The BRF model profit ($\$$`r mean_data[field_size=="37.3 ha"&model=="BRF", profit] %>% round(2)` ha$^{-1}$) is much higher than RF, but still significantly lower than the basic LM model ($\$$`r mean_data[field_size=="37.3 ha"&model=="LM", profit] %>% round(2)` ha$^{-1}$). The SER model profit is as high as $\$$`r mean_data[field_size=="37.3 ha"&model=="SER", profit] %>% round(2)` ha$^{-1}$.
+
+So, we should be cautious about the pitfall of machine learning models' good yield predicting performances. Almost all existing studies use yield prediction performance as the measure of yield estimation models. This can be very misleading and cost producers a lot when it is used in developing input management recommendations, since models with good yield prediction can have bad profit at the same time.
+
+## Main point 2:
+The model performances are generally robust to field sizes. But we also found that machine learning models' performances are less affected by field size reduction.
+
+The simulation results for medium (18.7 ha) and small (9.3 ha) trial field scenarios are displayed in Figure \@ref(fig:comb-boxplot-medium) and \@ref(fig:comb-boxplot-small).
+
+- The RF model still has better yield prediction while worse EONR prediction and profit than the LM and SER models.
+- The BRF model outperforms LM model in EONR prediction and profit in medium and small trial fields. 
+- Though the BRF model still cannot beat SER model in smaller fields, the gap between BRF and SER shrink as field size reduces. For the small field (9.3 ha), BRF's predicted EONR RMSE (`r mean_data[field_size=="9.3 ha"&model=="BRF", rmse_eonr] %>% round(2)` kg ha$^{-1}$) is almost as small as that of the SER model (`r mean_data[field_size=="9.3 ha"&model=="SER", rmse_eonr] %>% round(2)` kg ha$^{-1}$), and the profit gap between the BRF model (`r mean_data[field_size=="9.3 ha"&model=="BRF", profit] %>% round(2)` kg ha$^{-1}$) and the SER model (`r mean_data[field_size=="9.3 ha"&model=="BRF", profit] %>% round(2)` kg ha$^{-1}$) reduces to only about two thirds of the large field (37.3 ha) scenario.
+
+So, the better economic performances of traditional regression models require larger trial field sizes. Machine learning models' performances are less sensitive to field sizes. At the current prevailing on-farm experimental field sizes, traditional regression models perform well. But if the trial fields are really small, machine learning models (especially BRF) will be more suitable.
+
+## Main point 3:
+EONR prediction and profit is not perfectly one-on-one corresponding.
+
+Lots of agronomy studies use predicted EONR vs "true" EONR as the criteria to evaluate input recommendation algorithms. ("true" EONR is from yield responses estimated from trial data)
 
 
-## Profit performances
+## Main point 4:
+RF model is bad.
 
-Profit performance results for different models are displayed in Figure \@ref(fig:pi-boxplot-pool).
-
-- The average profit from EONR predicted by RF model is $\$$`r mean_data[field_size=="37.3 ha"&model=="RF", profit] %>% round(2)` ha$^{-1}$ over 1,000 simulations for the full field data.  That is really low.  The BRF model is better, with profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="BRF", profit] %>% round(2)` ha$^{-1}$.  But those are still significantly lower than even the LM model ($\$$`r mean_data[field_size=="37.3 ha"&model=="LM", profit] %>% round(2)` ha$^{-1}$).  The SER model has the highest profit of $\$$`r mean_data[field_size=="37.3 ha"&model=="SER", profit] %>% round(2)` ha$^{-1}$.
 - Even if we "cheat" and feed RF model with the best data, its profit is still only $\$$`r mean_data[field_size=="37.3 ha"&model=="RF best", profit] %>% round(2)` ha$^{-1}$ 
-- For smaller field sizes, the overall levels of profit decrease, which is not surprising as model estimations become less accurate with smaller sample sizes.  But the general trend of profit performance across models is robust to field sizes.  
-- The relative performance of BRF profit improves when field size reduces.  For the small (9.3 ha) and medium (18.7 ha) sized fields, the BRF profit outperforms LM model.  The profit gap between BRF and SER models also reduces from $\$$`r (mean_data[field_size=="37.3 ha"&model=="SER", profit] - mean_data[field_size=="37.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of large field to $\$$`r (mean_data[field_size=="18.7 ha"&model=="SER", profit] - mean_data[field_size=="18.7 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of medium field and $\$$`r (mean_data[field_size=="9.3 ha"&model=="SER", profit] - mean_data[field_size=="9.3 ha"&model=="BRF", profit]) %>% round(2)` ha$^{-1}$ of small field.  That may suggests machine learning is more useful for smaller field's data.
+If we estimate RF model with the best data, its RMSE will be further smaller (`r mean_data[field_size=="37.3 ha"&model=="RF best", rmse_yield] %>% round(2)` kg ha$^{-1}$).
 
+## Main point 5:
+LM vs. SER: Statistical efficiency is money.
 
-`r run_pagebreak()`
+We should be more actively use SER model in yield response estimation.
 
-# Discussions
-
-+ Yield prediction vs EONR prediction
-+ Statistical efficiency is money (SER vs LM) 
 
 
 `r run_pagebreak()`
@@ -308,18 +370,23 @@ Profit performance results for different models are displayed in Figure \@ref(fi
 
 # Figures {-}
 
-```{r rmse-boxplot-pool, fig.cap="The yield prediction performances of different models.", echo=FALSE, fig.width=7}
-rmse_boxplot_pool | pi_boxplot_pool
+```{r comb-boxplot-large, fig.cap="The performances of different models, large field.", echo=FALSE, fig.width=6}
+comb_boxplot_large
 ```
 
-```{r pi-boxplot-pool, fig.cap="The profit performances of different models.", echo=FALSE}
-pi_boxplot_pool
+```{r comb-boxplot-medium, fig.cap="The performances of different models, medium field.", echo=FALSE, fig.width=6}
+comb_boxplot_medium
 ```
+
+```{r comb-boxplot-small, fig.cap="The performances of different models, small field.", echo=FALSE, fig.width=6}
+comb_boxplot_small
+```
+
 
 # Tables {-}
 
 ```{r extreme-percent, echo=FALSE}
-knitr::kable(mean_data, format = "markdown", caption = "Summary Statistics")
+# knitr::kable(mean_data, format = "markdown", caption = "Summary Statistics")
 ```
 
 
