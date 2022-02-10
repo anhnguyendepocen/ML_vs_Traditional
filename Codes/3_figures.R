@@ -31,11 +31,73 @@ setwd(here())
 #' /*                         Load and Prepare Data                           */
 #' /*=========================================================================*/
 
+#*****************************   add EONR data     *****************************
+#* simulation results
+est_result_ls <-
+    readRDS(here("Shared/Results/est_result_ls_400.rds"))
+
+#* Read field data
+field_data <-
+    readRDS(here("Shared/Data/field_data.rds")) 
+
+#* Read field parameters
+field_parameters <- readRDS(here("Shared/Data/field_parameters.rds"))
+
+
+#* for scenario i
+for(sc_i in 1:length(est_result_ls)){
+    
+    #* prices
+    pN <- field_data$pN[sc_i]
+    pCorn <- field_data$pCorn[sc_i]
+    #* field sf data
+    field_sf <- field_data$field_sf[[sc_i]]
+    #* field true parameters
+    field_pars <- field_parameters$field_pars[[sc_i]] %>% 
+        #--- True cell-level EONR ---#
+        .[, EONR := (pN / pCorn - b1) / (2 * b2)] %>%
+        .[, EONR := pmin(Nk, EONR)] %>%
+        .[, EONR := pmax(0, EONR)]
+    
+    #* aggregate EONR to aunit level
+    EONR_df <- field_pars %>% 
+        #---join aunit_id---
+        .[data.table(field_sf)[,.(cell_id, aunit_id)], on = "cell_id"] %>% 
+        #---aggregate ---
+        .[, .(EONR = mean(EONR)), by = .(sim, aunit_id)]
+    
+    #* add EONR data to est_result_ls
+    est_result_ls[[sc_i]] <- 
+        est_result_ls[[sc_i]] %>% 
+        mutate(
+            data = list(
+                left_join(data, EONR_df, by = c("sim", "aunit_id"))
+            )
+        ) %>% 
+        mutate(
+            perform = list(
+                data.table(data)[, .(rmse_eonr = mean((opt_N_hat - EONR)^2, 
+                                                      na.rm = TRUE) %>% sqrt()), 
+                                 by = sim] %>% 
+                    left_join(perform, ., by = c("sim"))
+            )
+        ) %>% 
+        mutate(
+            rmse_eonr = 
+                perform[, mean(rmse_eonr, na.rm = TRUE)]
+        )
+}
+
+saveRDS(est_result_ls, here("Shared", "Results", "est_result_ls.rds"))
+
+#******************************************************************************
+
+
 # -----------------
 # load results data
 # -----------------
 est_data <-
-    readRDS(here("GitControlled/Results/est_result_ls_400.rds")) %>% 
+    readRDS(here("Shared/Results/est_result_ls.rds")) %>% 
     rbindlist() %>% 
     dplyr::select(model, perform, field_col) %>% 
     unnest(perform) %>% 
@@ -43,21 +105,22 @@ est_data <-
     print()
 
 
+
 # ----------------
 # data preparation
 # ----------------
 est_data <- est_data %>%
-    .[, .(field_col, model, sim, profit, rmse_train, rmse_cv)] %>% 
+    .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>% 
     #---field size---
     .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
     .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>% 
     #---model name---
     .[model=="brf", model := "BRF"] %>%
     .[model=="rf", model := "RF"] %>%
-    .[model=="rf_perfect", model := "RF_PERFECT"] %>%
+    .[model=="rf_perfect", model := "RF best"] %>%
     .[model=="lm", model := "OLS"] %>%
     .[model=="ser_50", model := "SER"] %>%
-    .[, model := factor(model, levels = c("RF", "RF_PERFECT", "BRF", "OLS", "SER"))] %>% 
+    .[, model := factor(model, levels = c("RF", "RF best", "BRF", "OLS", "SER"))] %>% 
     print()
 
 
@@ -81,31 +144,33 @@ mean_data <- gdata %>%
     .[, profit_low := profit_down - 1.5*IQR] %>% 
     .[, profit_high := profit_up + 1.5*IQR] %>% 
     print()
-source(here("GitControlled/Codes/Modules/figure_boxplot_facet.R"))
-ggsave(file = here('GitControlled/Graphs/profits_boxplot_facet.png'),
-       height=6,width=6.5)
-source(here("GitControlled/Codes/Modules/figure_boxplot_pool.R"))
-ggsave(file = here('GitControlled/Graphs/profits_boxplot_pool.png'),
+source(here("GitControlled/Codes/Modules/figure_boxplot_profit.R"))
+ggsave(file = here('GitControlled/Graphs/profits_boxplot.png'),
        height=6,width=6.5)
 
 # ----------------
-# boxplot: RMSE
+# boxplot: yield RMSE
 # ----------------
 gdata <- est_data
-source(here("GitControlled/Codes/Modules/figure_boxplot_rmse_pool.R"))
-ggsave(file = here('GitControlled/Graphs/rmse_boxplot_pool.png'),
+source(here("GitControlled/Codes/Modules/figure_boxplot_rmse_yield.R"))
+ggsave(file = here('GitControlled/Graphs/rmse_yield_boxplot.png'),
+       height=6,width=6.5)
+
+# ----------------
+# boxplot: EONR RMSE
+# ----------------
+gdata <- est_data
+source(here("GitControlled/Codes/Modules/figure_boxplot_rmse_eonr.R"))
+ggsave(file = here('GitControlled/Graphs/rmse_eonr_boxplot.png'),
        height=6,width=6.5)
 
 # --------------------
 # Table: mean and sd 
 # --------------------
-
-profit_summary_table <- datasummary(
-    (profit) * model ~ factor(field_size) * (Mean + SD), 
-    data = gdata[, .(field_size, model, profit)])
-rmse_summary_table <- datasummary(
-    (rmse_cv) * model ~ factor(field_size) * (Mean + SD), 
-    data = gdata[, .(field_size, model, rmse_cv)])
+gdata <- est_data
+datasummary(
+    (rmse_cv + rmse_eonr + profit) * model ~ factor(field_size) * (Mean + SD), 
+    data = gdata[, .(field_size, model, profit, rmse_cv, rmse_eonr)])
 
 mean_data <- gdata %>%
     .[, .(profit = mean(profit),
@@ -117,24 +182,30 @@ mean_data <- gdata %>%
     .[order(field_size, model), ] %>% 
     print()
 
+# ----------------
+# combined boxplot
+# ----------------
+gdata_long <- est_data %>% 
+    .[, .(field_size, model, sim, rmse_cv, rmse_eonr, profit)] %>% 
+    #=== Wide to Long: melt()
+    melt(id.vars = c('field_size','model','sim')) %>% 
+    #--- label field size ---#
+    .[field_size=="9.3 ha", fsize := "small"] %>% 
+    .[field_size=="18.7 ha", fsize := "medium"] %>% 
+    .[field_size=="37.3 ha", fsize := "large"] %>% 
+    print()
+for(s in unique(gdata_long$fsize)){
+    gdata <- gdata_long[fsize==s]
+    source(here("GitControlled/Codes/Modules/figure_boxplot_combined.R"))
+    ggsave(file = here("GitControlled", "Graphs", 
+                       paste0("combined_boxplot_", s, ".png")),
+           height=6,width=6.5)
+}
 
-# # Tables {-}
-# 
-# ```{r extreme-percent, echo=FALSE}
-# knitr::kable(extreme_table,  format="markdown", caption='Percentage (%) of extremely low profits')
-# ```
 
-# extreme_percent <- pi_data[, .(count = sum(profit<(-40)), 
-#                                nsim = length(sim)), 
-#                            by=.(field_col, design, model)] %>%
-#     .[, extreme_percent := round(count/nsim*100, 2)] %>%
-#     #--- Long to Wide: dcast()
-#     dcast(field_col+design~model, value.var="extreme_percent") %>%
-#     data.table() %>%
-#     .[order(field_col, GWR),] %>%
-#     .[field_col==144,] %>% 
-#     print()
-# write.csv(extreme_percent, here('Graph/tables/extreme_percent.csv'))
+
+
+
 
 
 

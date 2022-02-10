@@ -1,14 +1,14 @@
-
+#' 
 #' # /*===========================================================
 #' #' # Visualization the field and spatial units
 #' # /*===========================================================
 #' # fig.id = "field-layout",
 #' # fig.cap = "Simulated field layout with spatial unit definitions",
 #' # fig.dim = c(6, 6)
-#'
+#' 
 #' field_with_design <- readRDS(here("Data/field_with_design.rds"))
 #' field_sf <- field_with_design[1, ]$field_sf[[1]]
-#'
+#' 
 #' plot_sf <-
 #'   field_sf %>%
 #'   nest_by(plot_id) %>%
@@ -17,7 +17,7 @@
 #'   )) %>%
 #'   unnest() %>%
 #'   st_as_sf()
-#'
+#' 
 #' block_sf <-
 #'   field_sf %>%
 #'   nest_by(block_id) %>%
@@ -26,9 +26,9 @@
 #'   )) %>%
 #'   unnest() %>%
 #'   st_as_sf()
-#'
+#' 
 #' block_text_sf <- st_centroid(block_sf)
-#'
+#' 
 #' #* Field: plots and blocks
 #' g_field <-
 #'   ggplot() +
@@ -49,10 +49,10 @@
 #'   ) +
 #'   theme_void() +
 #'   ggtitle("Panel (a): Plots and blocks in an experimental field")
-#'
+#' 
 #' ## inside a plot
 #' plot_sf_focus <- filter(field_sf, plot_id == 1)
-#'
+#' 
 #' subplot_sf <-
 #'   plot_sf_focus %>%
 #'   nest_by(aunit_id, buffer) %>%
@@ -67,11 +67,11 @@
 #'     paste0("subplot-", aunit_id - 1)
 #'   )) %>%
 #'   mutate(buf_or_not = ifelse(label == "buffer", "buffer", "subplot"))
-#'
+#' 
 #' subplot_text_sf <- st_centroid(subplot_sf)
-#'
+#' 
 #' site_sf <- plot_sf_focus[7, ]
-#'
+#' 
 #' g_inside_plot <-
 #'   ggplot() +
 #'   geom_sf(data = plot_sf_focus, size = 0.2, fill = NA) +
@@ -86,95 +86,82 @@
 #'     legend.text = element_text(size = 12)
 #'   ) +
 #'   ggtitle("Panel (b): Subplots, buffers, and sites in a single plot")
-#'
+#' 
 #' g_layout <- g_field / g_inside_plot
-#'
-#' # /*===========================================================
-#' #' # Experimental Design
-#' # /*===========================================================
-#' # fig.id = "field-N-design",
-#' # fig.cap = "Experiment design of nitrogen (N) rates"
-#'
-#' reg_data <-
-#'   readRDS(here("Data/LatinSquareFixed_144.rds")) %>%
-#'   pull(reg_data) %>%
-#'   .[[1]] %>%
-#'   .[1]
-#'
-#' data <- reg_data$data[[1]]
-#'
-#' N_levels <- reg_data$N_levels[[1]]
-#'
-#' data <-
-#'   data %>%
-#'   .[, Nid := as.numeric(as.factor(Nid))] %>%
-#'   .[, Ntg := N_levels[Nid]]
-#'
-#' f <-
-#'   left_join(field_sf, data[, .(aunit_id, Ntg)], by = "aunit_id") %>%
-#'   data.table() %>%
-#'   .[, Ntg := factor(Ntg)] %>%
-#'   .[buffer == 1, Ntg := "buffer"] %>%
-#'   .[, Ntg := factor(Ntg, levels = c("buffer", as.character(levels(Ntg)[-7])))] %>%
-#'   st_as_sf()
-#'
-#' g_exp <-
-#'   ggplot() +
-#'   geom_sf(data = f, aes(fill = (Ntg)), size = 0.1) +
-#'   scale_fill_viridis_d(name = "N rate (kg/ha)", direction = -1) +
-#'   theme_void() +
-#'   theme(
-#'     plot.title = element_text(hjust = 0.5),
-#'     legend.position = "bottom",
-#'     legend.key.size = unit(0.4, "cm"),
-#'     legend.text = element_text(size = 10)
-#'   )
+#' 
+# /*===========================================================
+#' # Experimental Design
+# /*===========================================================
+# fig.id = "field-N-design",
+# fig.cap = "Experiment design of nitrogen (N) rates"
+
+# reg_data <-
+#   readRDS(here("Data/LatinSquareFixed_144.rds")) %>%
+#   pull(reg_data) %>%
+#   .[[1]] %>%
+#   .[1]
+# 
+# data <- reg_data$data[[1]]
+# 
+# N_levels <- reg_data$N_levels[[1]]
+# 
+# data <-
+#   data %>%
+#   .[, Nid := as.numeric(as.factor(Nid))] %>%
+#   .[, Ntg := N_levels[Nid]]
+# 
+# f <-
+#   left_join(field_sf, data[, .(aunit_id, Ntg)], by = "aunit_id") %>%
+#   data.table() %>%
+#   .[, Ntg := factor(Ntg)] %>%
+#   .[buffer == 1, Ntg := "buffer"] %>%
+#   .[, Ntg := factor(Ntg, levels = c("buffer", as.character(levels(Ntg)[-7])))] %>%
+#   st_as_sf()
+
+# g_exp <-
+#   ggplot() +
+#   geom_sf(data = f, aes(fill = (Ntg)), size = 0.1) +
+#   scale_fill_viridis_d(name = "N rate (kg/ha)", direction = -1) +
+#   theme_void() +
+#   theme(
+#     plot.title = element_text(hjust = 0.5),
+#     legend.position = "bottom",
+#     legend.key.size = unit(0.4, "cm"),
+#     legend.text = element_text(size = 10)
+#   )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#******************************************************************************
 
 # /*===========================================================
-#' # Boxplot of profit
+#' # Boxplot of yield RMSE
 # /*===========================================================
-# fig.id = "pi-boxplot-pool",
-# fig.cap = "The profit performances of different models"
-
-#------ range of profit values ------#
-value_ls <- -seq(0, -gdata[, min(profit) / 5] %>% ceiling() * 5, by = 10)
-yaxis_min <- gdata$profit %>% min()
-yaxis_max <- gdata$profit %>% max()
-podg <- position_dodge(0.4)
-
-#------ boxplot ------#
-pi_boxplot_pool <-
-  gdata %>%
-  ggplot(
-    data = .,
-    aes(x = field_size, y = profit, fill = model)
-  ) +
-  stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
-  geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
-  ylab("Profit Relative to True Optimal ($/ha)") +
-  xlab("") +
-  scale_y_continuous(
-    expand = c(0, 0), breaks = value_ls, label = value_ls,
-    limits = c(yaxis_min - 10, 0)
-  ) +
-  theme_bw() +
-  theme(
-    panel.grid.minor.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.key.size = unit(0.4, "cm"),
-    # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
-    # legend.margin=margin(t = -0.5, unit='cm'),
-    axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-    axis.text = element_text(color = "black")
-  )
-
-# /*===========================================================
-#' # Boxplot of RMSE
-# /*===========================================================
-# fig.id = "rmse-boxplot-pool",
+# fig.id = "rmse-yield-boxplot",
 # fig.cap = "The yield prediction performances of different models"
 
 #------ range of values ------#
@@ -184,35 +171,189 @@ value_ls <- seq(gdata[, min(rmse_cv) / 200] %>% floor() * 200,
 )
 yaxis_min <- gdata$rmse_cv %>% min()
 yaxis_max <- gdata$rmse_cv %>% max()
-podg <- position_dodge(0.4)
+podg <- position_dodge(0.6)
 
 #------ boxplot ------#
-rmse_boxplot_pool <-
-  gdata %>%
-  ggplot(
-    data = .,
-    aes(x = field_size, y = rmse_cv, fill = model)
-  ) +
-  stat_boxplot(geom = "errorbar", width = 0.25, position = podg) +
-  geom_boxplot(position = podg, width = 0.25, outlier.shape = NA) +
-  ylab("Out-of-Sample Yield Prediction RMSE (kg/ha)") +
-  xlab("") +
-  scale_y_continuous(breaks = value_ls, label = value_ls) +
-  coord_cartesian(ylim = c(yaxis_min, yaxis_max - 2000)) +
-  theme_bw() +
-  theme(
-    panel.grid.minor.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.key.size = unit(0.4, "cm"),
-    # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
-    # legend.margin=margin(t = -0.5, unit='cm'),
-    axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-    axis.text = element_text(color = "black")
-  )
+rmse_yield_boxplot <- 
+    gdata %>% 
+    ggplot(data = ., 
+       aes(x = field_size, y = rmse_cv, fill = model)) +
+    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
+    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
+    ylab('Out-of-Sample Yield Prediction RMSE (kg/ha)') +
+    xlab('') +
+    scale_y_continuous(breaks = value_ls, label = value_ls) +
+    coord_cartesian(ylim = c(yaxis_min, yaxis_max - 2000)) +
+    theme_bw() +
+    theme(
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position='bottom',
+        legend.title = element_blank(),
+        legend.key.size = unit(0.4, 'cm'),
+        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+        # legend.margin=margin(t = -0.5, unit='cm'),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        axis.text=element_text(color='black')
+    )
 
+
+# /*===========================================================
+#' # Boxplot of EONR RMSE
+# /*===========================================================
+# fig.id = "rmse-eonr-boxplot",
+# fig.cap = "The yield prediction performances of different models"
+
+#------ range of values ------#
+value_ls <- seq(gdata[,min(rmse_eonr)/10] %>% floor()*10, 
+                gdata[,max(rmse_eonr)/10] %>% ceiling()*10, 
+                by = 10)
+yaxis_min <- gdata$rmse_eonr %>% min()
+yaxis_max <- gdata$rmse_eonr %>% max()
+podg <- position_dodge(0.6)
+
+#------ boxplot ------#
+rmse_eonr_boxplot <- 
+    gdata %>% 
+    ggplot(data = ., 
+           aes(x = field_size, y = rmse_eonr, fill = model)) +
+    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
+    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
+    ylab('Out-of-Sample EONR Prediction RMSE (kg/ha)') +
+    xlab('') +
+    scale_y_continuous(breaks = value_ls, label = value_ls) +
+    coord_cartesian(ylim = c(yaxis_min, yaxis_max - 10)) +
+    theme_bw() +
+    theme(
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position='bottom',
+        legend.title = element_blank(),
+        legend.key.size = unit(0.4, 'cm'),
+        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+        # legend.margin=margin(t = -0.5, unit='cm'),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        axis.text=element_text(color='black')
+    )
+
+
+# /*===========================================================
+#' # Boxplot of profit
+# /*===========================================================
+# fig.id = "pi-boxplot",
+# fig.cap = "The profit performances of different models"
+
+#------ range of profit values ------#
+value_ls <- -seq(0, -gdata[, min(profit) / 5] %>% ceiling() * 5, by = 10)
+yaxis_max <- gdata$profit %>% max()
+yaxis_min <- gdata$profit %>% min()
+podg <- position_dodge(0.6)
+
+
+#------ boxplot ------#
+pi_boxplot <- 
+    gdata %>% 
+    ggplot(data = ., 
+           aes(x = field_size, y = profit, fill = model)) +
+    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
+    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
+    ylab('Profit Relative to True Optimal ($/ha)') +
+    xlab('') +
+    scale_y_continuous(expand = c(0, 0), breaks = value_ls, label = value_ls,
+                       limits = c(yaxis_min - 10, 0)) +
+    theme_bw() +
+    theme(
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position='bottom',
+        legend.title = element_blank(),
+        legend.key.size = unit(0.4, 'cm'),
+        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
+        # legend.margin=margin(t = -0.5, unit='cm'),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        axis.text=element_text(color='black')
+    )
+
+
+# /*===========================================================
+#' # Boxplot: yield, EONR, profit combined
+# /*===========================================================
+# fig.id = "comb-boxplot-large", "comb-boxplot-medium", "comb-boxplot-small"
+# fig.cap = "The performances of different models"
+
+#------ data reshaping ------#
+gdata_long <- gdata %>% 
+    .[, .(field_size, model, sim, rmse_cv, rmse_eonr, profit)] %>% 
+    #=== Wide to Long: melt()
+    melt(id.vars = c('field_size','model','sim')) %>% 
+    #--- label field size ---#
+    .[field_size=="9.3 ha", fsize := "small"] %>% 
+    .[field_size=="18.7 ha", fsize := "medium"] %>% 
+    .[field_size=="37.3 ha", fsize := "large"] %>% 
+    print()
+#------ boxplot ------#
+for(s in unique(gdata_long$fsize)){
+    podg <- position_dodge(0.6)
+    assign(paste0("comb_boxplot_", s), 
+           gdata_long[fsize==s] %>% 
+               ggplot(data = ., 
+                      aes(x = model, y = value, fill = model)) +
+               stat_boxplot(geom = "errorbar", width = 0.4, position = podg, lwd = 0.25) +
+               geom_boxplot(position = podg, width = 0.4, outlier.shape = NA, lwd = 0.25) +
+               facet_wrap(~variable, ncol = 3, scales = "free_y") +
+               ylab('') +
+               xlab('') +
+               theme_classic() +
+               theme(
+                   panel.grid.minor.x = element_blank(),
+                   panel.grid.major.x = element_blank(),
+                   panel.grid.minor.y = element_blank(),
+                   legend.position='none',
+                   legend.title = element_blank(),
+                   legend.key.size = unit(0.4, 'cm'),
+                   axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+                   axis.text=element_text(color='black')
+               )
+    )
+}
+
+
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#******************************************************************************
 
 # /*===========================================================
 #' # Comparison of Estimated and True Coefficients
