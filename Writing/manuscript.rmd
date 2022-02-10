@@ -1,5 +1,5 @@
 ---
-title: "Pitfall of Prediction-orienterd Machine Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
+title: "Pitfall of Prediction-orienterd Machine Learning Methods and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
 author:
   - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
 output:
@@ -179,8 +179,6 @@ The main purpose of this study is to compare the performance of prediction-orien
 
 We found that while the prediction-oriented ML methods (RF and BRF) perform much better than the traditional methods (LM and SER) in predicting yield level, they perform worse than the traditional methods (LM and SER) in predicting EONR and thus in profitability of site-specific EONR recommendation. SER in particular performs the best in profitability. The economic value of its statistical efficiency over the LM approach is not negligible at <span style = "color: blue;"> Xiafei, put numbers here </span>. Our results provide a cautionary tale for those who place unsubstantiated and blind trust in prediction-oriented ML methods and apply them when the accurate estimation of ceteris paribus causal impacts of the variable of interest is warranted. 
 
-
-
 # Methods: Monte Carlo Simulation
 
 In our Monte Carlo simulations, we will test five estimation approches on three different sizes of fields: x ha, y ha, and x ha. In this section, we describe the data generating process, estimation approaches, and model evaluation. 
@@ -277,7 +275,6 @@ The finding of machine learning models' better yield prediction performances is 
 RF and BRF models have better yield predictions.  So what?
 
 Better yield prediction does not necessarily translate into better EONR 
-
 
 ## Profit performances
 
