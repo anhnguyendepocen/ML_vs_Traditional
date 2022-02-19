@@ -56,6 +56,110 @@ est_data <-
 pCorn <- mc_sim_results$pCorn
 pN <- mc_sim_results$pN
 
+#******************   combine separately simulated data     ********************
+{
+    #* simulation results
+    est_result_ls <-
+        readRDS(here("Shared", "Results", "est_result_ls_200.rds"))
+    
+    for(i in c(3:10)*100){
+        est_ls_i <-
+            readRDS(here("Shared", "Results", paste0("est_result_ls_", i,".rds")))
+        
+        #* combine data
+        for(sc_i in 1:length(est_result_ls)){
+            
+            for(m in 1:nrow(est_result_ls[[sc_i]])){
+                
+                est_result_ls[[sc_i]]$data[[m]] <- 
+                    rbind(est_result_ls[[sc_i]]$data[[m]],
+                          est_ls_i[[sc_i]]$data[[m]])
+                
+                est_result_ls[[sc_i]]$perform[[m]] <- 
+                    rbind(est_result_ls[[sc_i]]$perform[[m]],
+                          est_ls_i[[sc_i]]$perform[[m]])
+                
+                est_result_ls[[sc_i]] <- 
+                    est_result_ls[[sc_i]] %>% 
+                    mutate(
+                        mean_profit =
+                            perform[, mean(profit, na.rm = TRUE)],
+                        rmse_train = 
+                            perform[, mean(rmse_train, na.rm = TRUE)],
+                        rmse_cv = 
+                            perform[, mean(rmse_cv, na.rm = TRUE)],
+                        rmse_eonr = 
+                            perform[, mean(rmse_eonr, na.rm = TRUE)]
+                )
+            }
+        }
+    }
+
+    saveRDS(est_result_ls, here("Shared", "Results", "est_result_ls.rds"))
+    
+}
+
+#*****************************   add EONR data     *****************************
+{
+    #* simulation results
+    est_result_ls <-
+        readRDS(here("Shared/Results/est_result_ls_400.rds"))
+    
+    #* Read field data
+    field_data <-
+        readRDS(here("Shared/Data/field_data.rds")) 
+    
+    #* Read field parameters
+    field_parameters <- readRDS(here("Shared/Data/field_parameters.rds"))
+    
+    
+    #* for scenario i
+    for(sc_i in 1:length(est_result_ls)){
+        
+        #* prices
+        pN <- field_data$pN[sc_i]
+        pCorn <- field_data$pCorn[sc_i]
+        #* field sf data
+        field_sf <- field_data$field_sf[[sc_i]]
+        #* field true parameters
+        field_pars <- field_parameters$field_pars[[sc_i]] %>% 
+            #--- True cell-level EONR ---#
+            .[, opt_N := (pN / pCorn - b1) / (2 * b2)] %>%
+            .[, opt_N := pmin(Nk, opt_N)] %>%
+            .[, opt_N := pmax(0, opt_N)]
+        
+        #* aggregate EONR to aunit level
+        EONR_df <- field_pars %>% 
+            #---join aunit_id---
+            .[data.table(field_sf)[,.(cell_id, aunit_id)], on = "cell_id"] %>% 
+            #---aggregate ---
+            .[, .(EONR = mean(opt_N)), by = .(sim, aunit_id)]
+        
+        #* add EONR data to est_result_ls
+        est_result_ls[[sc_i]] <- 
+            est_result_ls[[sc_i]] %>% 
+            mutate(
+                data = list(
+                    left_join(data, EONR_df, by = c("sim", "aunit_id"))
+                )
+            ) %>% 
+            mutate(
+                perform = list(
+                    data.table(data)[, .(rmse_eonr = mean((opt_N_hat - EONR)^2, 
+                                                          na.rm = TRUE) %>% sqrt()), 
+                                     by = sim] %>% 
+                        left_join(perform, ., by = c("sim"))
+                )
+            ) %>% 
+            mutate(
+                rmse_eonr = 
+                    perform[, mean(rmse_eonr, na.rm = TRUE)]
+            )
+    }
+    
+    saveRDS(est_result_ls, here("Shared", "Results", "est_result_ls.rds"))  
+}
+#******************************************************************************
 
 
 # /*===========================================================

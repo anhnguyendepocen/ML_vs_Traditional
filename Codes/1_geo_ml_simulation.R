@@ -228,22 +228,23 @@ for(sc_i in 1:nrow(field_with_design)){
 
     #* find true EONR
     field_pars <- field_pars %>%
+        #--- True cell-level EONR ---#
         .[, opt_N := (pN / pCorn - b1) / (2 * b2)] %>%
         .[, opt_N := pmin(Nk, opt_N)] %>%
         .[, opt_N := pmax(0, opt_N)] %>% 
         #--- True optimal profit ---#
         .[, yield_opt := gen_yield_QP(b0, b1, b2, Nk, opt_N)] %>%
         .[, profit_opt := pCorn * yield_opt - pN * opt_N]
-        
+
     
     ## -----------------------
     ## Run estimation models  
     ## -----------------------
     
     #* how many simulations to run
-    sim_range <- c(401:1000)
+    sim_range <- c(1:100)
     
-    #* run pre-defined `run_analysis` function
+    #* run pre-defined run_analysis function
     eonr_results <-
         lapply(
             sim_range,
@@ -269,9 +270,13 @@ for(sc_i in 1:nrow(field_with_design)){
                     .[, profit := profit - profit_opt] %>% 
                     .[, .(profit = mean(profit, na.rm = TRUE),
                           rmse_train = mean(e_hat_train^2, na.rm = TRUE) %>% sqrt(),
-                          rmse_cv = mean(e_hat_cv^2, na.rm = TRUE) %>% sqrt()
+                          rmse_cv = mean(e_hat_cv^2, na.rm = TRUE) %>% sqrt(),
+                          rmse_eonr = mean((opt_N_hat - opt_N)^2, 
+                                           na.rm = TRUE) %>% sqrt()
                           ),
                       by = sim]
+                #>>> note: the rmse_eonr is calculated at the cell level (opt_N),
+                #>>>      which is larger than the aunit level calculation.
             )
         ) %>% 
         mutate(
@@ -282,7 +287,9 @@ for(sc_i in 1:nrow(field_with_design)){
             rmse_train = 
                 perform[, mean(rmse_train, na.rm = TRUE)],
             rmse_cv = 
-                perform[, mean(rmse_cv, na.rm = TRUE)]
+                perform[, mean(rmse_cv, na.rm = TRUE)],
+            rmse_eonr = 
+                perform[, mean(rmse_eonr, na.rm = TRUE)]
         )
     
     #* profit for scenario i
@@ -294,10 +301,6 @@ toc()
 
 
 #* save results
-saveRDS(est_result_ls, here("GitControlled", "Results", "est_result_ls_600.rds"))
-
-
-
-
+saveRDS(est_result_ls, here("Shared", "Results", "est_result_ls_100.rds"))
 
 

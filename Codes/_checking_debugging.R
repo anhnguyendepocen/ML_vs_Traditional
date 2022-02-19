@@ -177,12 +177,15 @@ reg_data <-
 ##   run models
 ## ------------------------------
 
+tic()
 ols_results <- run_linear_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-# ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
+ser_results <- run_sperror_analysis_50(reg_data, cv_data, x_vars, pN, pCorn, N_levels, Wls$Wls_50)
 rf_results <- run_rf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
 rf_perfect_results <- run_rf_perfect_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-# brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
-
+toc()
+tic()
+brf_results <- run_brf_analysis(reg_data, cv_data, x_vars, pN, pCorn, N_levels)
+toc()
 
 #* calculate model performances
 perf_df(ols_results)
