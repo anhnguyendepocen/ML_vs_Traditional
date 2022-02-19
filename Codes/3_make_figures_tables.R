@@ -159,44 +159,42 @@
 #******************************************************************************
 
 # /*===========================================================
+#' # Single simulation illustration (aunit-level data)
+# /*===========================================================
+sim_example = 58
+gdata <- illus_data[sim==sim_example, ]
+mean_dt <- gdata %>% 
+    .[, .(
+        rmse_yield = mean((yield - yield_hat)^2, na.rm = TRUE) %>% sqrt() %>% round(1),
+        rmse_EONR = mean((EONR - opt_N_hat)^2) %>% sqrt() %>% round(1),
+        x_yield = quantile(yield, 0.05),
+        y_yield = quantile(yield_hat, 0.99),
+        x_EONR = quantile(EONR, 0.05),
+        y_EONR = quantile(opt_N_hat, 0.99) + 15
+    ),
+    by = .(model)] %>% 
+    print()
+
+#* predicted vs true yield
+single_simu_yield <- 
+    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_yield.R"))$value
+#* predicted vs true EONR
+single_simu_EONR <- 
+    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_EONR.R"))$value
+
+
+
+# /*===========================================================
 #' # Boxplot of yield RMSE
 # /*===========================================================
 # fig.id = "rmse-yield-boxplot",
 # fig.cap = "The yield prediction performances of different models"
 
-#------ range of values ------#
-value_ls <- seq(gdata[, min(rmse_cv) / 200] %>% floor() * 200,
-  gdata[, max(rmse_cv) / 200] %>% ceiling() * 200,
-  by = 200
-)
-yaxis_min <- gdata$rmse_cv %>% min()
-yaxis_max <- gdata$rmse_cv %>% max()
-podg <- position_dodge(0.6)
-
+gdata <- est_data
 #------ boxplot ------#
-rmse_yield_boxplot <- 
-    gdata %>% 
-    ggplot(data = ., 
-       aes(x = field_size, y = rmse_cv, fill = model)) +
-    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
-    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
-    ylab('Out-of-Sample Yield Prediction RMSE (kg/ha)') +
-    xlab('') +
-    scale_y_continuous(breaks = value_ls, label = value_ls) +
-    coord_cartesian(ylim = c(yaxis_min, yaxis_max - 2000)) +
-    theme_bw() +
-    theme(
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        legend.position='bottom',
-        legend.title = element_blank(),
-        legend.key.size = unit(0.4, 'cm'),
-        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
-        # legend.margin=margin(t = -0.5, unit='cm'),
-        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-        axis.text=element_text(color='black')
-    )
+source(here("GitControlled", "Codes", "Modules", "figure_boxplot_rmse_yield.R"))
+rmse_yield_boxplot <- g_plot
+
 
 
 # /*===========================================================
@@ -205,38 +203,11 @@ rmse_yield_boxplot <-
 # fig.id = "rmse-eonr-boxplot",
 # fig.cap = "The yield prediction performances of different models"
 
-#------ range of values ------#
-value_ls <- seq(gdata[,min(rmse_eonr)/10] %>% floor()*10, 
-                gdata[,max(rmse_eonr)/10] %>% ceiling()*10, 
-                by = 10)
-yaxis_min <- gdata$rmse_eonr %>% min()
-yaxis_max <- gdata$rmse_eonr %>% max()
-podg <- position_dodge(0.6)
-
+gdata <- est_data
 #------ boxplot ------#
-rmse_eonr_boxplot <- 
-    gdata %>% 
-    ggplot(data = ., 
-           aes(x = field_size, y = rmse_eonr, fill = model)) +
-    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
-    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
-    ylab('Out-of-Sample EONR Prediction RMSE (kg/ha)') +
-    xlab('') +
-    scale_y_continuous(breaks = value_ls, label = value_ls) +
-    coord_cartesian(ylim = c(yaxis_min, yaxis_max - 10)) +
-    theme_bw() +
-    theme(
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        legend.position='bottom',
-        legend.title = element_blank(),
-        legend.key.size = unit(0.4, 'cm'),
-        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
-        # legend.margin=margin(t = -0.5, unit='cm'),
-        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-        axis.text=element_text(color='black')
-    )
+source(here("GitControlled", "Codes", "Modules", "figure_boxplot_rmse_eonr.R"))
+rmse_eonr_boxplot <- g_plot
+
 
 
 # /*===========================================================
@@ -245,37 +216,11 @@ rmse_eonr_boxplot <-
 # fig.id = "pi-boxplot",
 # fig.cap = "The profit performances of different models"
 
-#------ range of profit values ------#
-value_ls <- -seq(0, -gdata[, min(profit) / 5] %>% ceiling() * 5, by = 10)
-yaxis_max <- gdata$profit %>% max()
-yaxis_min <- gdata$profit %>% min()
-podg <- position_dodge(0.6)
-
-
+gdata <- est_data
 #------ boxplot ------#
-pi_boxplot <- 
-    gdata %>% 
-    ggplot(data = ., 
-           aes(x = field_size, y = profit, fill = model)) +
-    stat_boxplot(geom = "errorbar", width = 0.3, position = podg) +
-    geom_boxplot(position = podg, width = 0.5, outlier.shape = NA) +
-    ylab('Profit Relative to True Optimal ($/ha)') +
-    xlab('') +
-    scale_y_continuous(expand = c(0, 0), breaks = value_ls, label = value_ls,
-                       limits = c(yaxis_min - 10, 0)) +
-    theme_bw() +
-    theme(
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        legend.position='bottom',
-        legend.title = element_blank(),
-        legend.key.size = unit(0.4, 'cm'),
-        # legend.text = element_text(margin = margin(r = 1, unit = "cm")),
-        # legend.margin=margin(t = -0.5, unit='cm'),
-        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
-        axis.text=element_text(color='black')
-    )
+source(here("GitControlled", "Codes", "Modules", "figure_boxplot_profit.R"))
+pi_boxplot <- g_plot
+
 
 
 # /*===========================================================
@@ -284,8 +229,10 @@ pi_boxplot <-
 # fig.id = "comb-boxplot-large", "comb-boxplot-medium", "comb-boxplot-small"
 # fig.cap = "The performances of different models"
 
+gdata <- est_data
+
 #------ data reshaping ------#
-gdata_long <- gdata %>% 
+gdata_long <- est_data %>% 
     .[, .(field_size, model, sim, rmse_cv, rmse_eonr, profit)] %>% 
     #=== Wide to Long: melt()
     melt(id.vars = c('field_size','model','sim')) %>% 
@@ -293,6 +240,13 @@ gdata_long <- gdata %>%
     .[field_size=="9.3 ha", fsize := "small"] %>% 
     .[field_size=="18.7 ha", fsize := "medium"] %>% 
     .[field_size=="37.3 ha", fsize := "large"] %>% 
+    #--- label variable type ---#
+    .[variable=="rmse_cv", var_type := "Yield RMSE (kg/ha)"] %>% 
+    .[variable=="rmse_eonr", var_type := "EONR RMSE (kg/ha)"] %>% 
+    .[variable=="profit", var_type := "Profit ($/ha)"] %>% 
+    .[, var_type := factor(var_type, levels = c("Yield RMSE (kg/ha)", 
+                                                "EONR RMSE (kg/ha)", 
+                                                "Profit ($/ha)"))] %>% 
     print()
 #------ boxplot ------#
 for(s in unique(gdata_long$fsize)){
@@ -303,10 +257,11 @@ for(s in unique(gdata_long$fsize)){
                       aes(x = model, y = value, fill = model)) +
                stat_boxplot(geom = "errorbar", width = 0.4, position = podg, lwd = 0.25) +
                geom_boxplot(position = podg, width = 0.4, outlier.shape = NA, lwd = 0.25) +
-               facet_wrap(~variable, ncol = 3, scales = "free_y") +
+               scale_fill_manual(values = c("white", "white", "white", "gray75", "gray75")) +
+               facet_wrap(~var_type, ncol = 3, scales = "free_y") +
                ylab('') +
                xlab('') +
-               theme_classic() +
+               theme_bw() +
                theme(
                    panel.grid.minor.x = element_blank(),
                    panel.grid.major.x = element_blank(),
