@@ -159,32 +159,6 @@
 #******************************************************************************
 
 # /*===========================================================
-#' # Single simulation illustration (aunit-level data)
-# /*===========================================================
-sim_example = 58
-gdata <- illus_data[sim==sim_example, ]
-mean_dt <- gdata %>% 
-    .[, .(
-        rmse_yield = mean((yield - yield_hat)^2, na.rm = TRUE) %>% sqrt() %>% round(1),
-        rmse_EONR = mean((EONR - opt_N_hat)^2) %>% sqrt() %>% round(1),
-        x_yield = quantile(yield, 0.05),
-        y_yield = quantile(yield_hat, 0.99),
-        x_EONR = quantile(EONR, 0.05),
-        y_EONR = quantile(opt_N_hat, 0.99) + 15
-    ),
-    by = .(model)] %>% 
-    print()
-
-#* predicted vs true yield
-single_simu_yield <- 
-    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_yield.R"))$value
-#* predicted vs true EONR
-single_simu_EONR <- 
-    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_EONR.R"))$value
-
-
-
-# /*===========================================================
 #' # Boxplot of yield RMSE
 # /*===========================================================
 # fig.id = "rmse-yield-boxplot",
@@ -275,6 +249,34 @@ for(s in unique(gdata_long$fsize)){
     )
 }
 
+
+
+# /*===========================================================
+#' # Single simulation illustration: yield & EONR
+# /*===========================================================
+# fig.id = "single-simu-yield", "single-simu-EONR"
+# fig.cap = "Illustration, single simulation"
+
+sim_example = 58
+gdata <- illus_data[sim==sim_example, ]
+mean_dt <- gdata %>% 
+    .[, .(
+        rmse_yield = mean((yield - yield_hat)^2, na.rm = TRUE) %>% sqrt() %>% round(1),
+        rmse_EONR = mean((EONR - opt_N_hat)^2) %>% sqrt() %>% round(1),
+        x_yield = quantile(yield, 0.05),
+        y_yield = quantile(yield_hat, 0.99),
+        x_EONR = quantile(EONR, 0.05),
+        y_EONR = quantile(opt_N_hat, 0.99) + 15
+    ),
+    by = .(model)] %>% 
+    print()
+
+#* predicted vs true yield
+single_simu_yield <- 
+    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_yield.R"))$value
+#* predicted vs true EONR
+single_simu_EONR <- 
+    source(here("GitControlled", "Codes", "Modules", "figure_single_simu_EONR.R"))$value
 
 
 #
