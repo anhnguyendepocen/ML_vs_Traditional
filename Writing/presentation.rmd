@@ -1,0 +1,348 @@
+---
+title: "Pitfall of Prediction-orienterd Machine Learning Models and Economic Value of Statistical Efficiency in On-farm Precision Experimentation"
+author:
+  - Taro Mieno^[University of Nebraska Lincoln, tmieno2@unl.edu], Xiaofei Li^[Mississippi State University, xiaofei.li@msstate.edu], David S. Bullock^[University of Illinois, dsbulloc@illinois.edu]
+output: powerpoint_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r echo = F, cache = F, include = F}
+library(knitr)
+library(here)
+
+here::i_am("GitControlled/Writing/manuscript.rmd")
+
+opts_chunk$set(
+  fig.align = "center",
+  fig.retina = 5,
+  warning = F,
+  message = F,
+  cache = T,
+  echo = F,
+  fig.cap = TRUE
+)
+```
+
+```{r cache = F, include = F}
+#--- packages ---#
+library(data.table)
+library(tidyverse)
+library(officedown)
+library(officer)
+library(flextable)
+library(stringr)
+library(sf)
+library(lfe)
+library(modelsummary)
+library(patchwork)
+library(gridExtra)
+```
+
+```{r figure_setup, cache = F}
+theme_update(
+  axis.title.x =
+    element_text(
+      size = 12, angle = 0, hjust = .5, vjust = -0.3, face = "plain"
+    ),
+  axis.title.y =
+    element_text(
+      size = 12, angle = 90, hjust = .5, vjust = .9, face = "plain"
+    ),
+  axis.text.x =
+    element_text(
+      size = 10, angle = 0, hjust = .5, vjust = 1.5, face = "plain"
+    ),
+  axis.text.y =
+    element_text(
+      size = 10, angle = 0, hjust = 1, vjust = 0, face = "plain"
+    ),
+  axis.ticks =
+    element_line(
+      size = 0.3, linetype = "solid"
+    ),
+  axis.ticks.length = unit(.15, "cm"),
+  #--- legend ---#
+  legend.text =
+    element_text(
+      size = 10, angle = 0, hjust = 0, vjust = 0, face = "plain"
+    ),
+  legend.title =
+    element_text(
+      size = 10, angle = 0, hjust = 0, vjust = 0, face = "plain"
+    ),
+  legend.key.size = unit(0.5, "cm"),
+  #--- strip (for faceting) ---#
+  strip.text = element_text(size = 10),
+  #--- plot title ---#
+  plot.title = element_text(family = "Times", face = "bold", size = 12),
+  #--- margin ---#
+  # plot.margin = margin(0, 0, 0, 0, "cm"),
+  #--- panel ---#
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  panel.background = element_blank(),
+  panel.border = element_rect(fill = NA)
+)
+```
+
+
+```{r include = FALSE}
+# /*===========================================================
+#' # Prepare data and results for writing
+# /*===========================================================
+#* source all the functions in the Functions folder
+# fs::dir_ls(here("Codes", "Functions"), full.names = TRUE) %>%
+#   lapply(., function(x) source(x))
+
+# /*----------------------------------*/
+#' ##  data preparation
+# /*----------------------------------*/
+#' load results data
+est_data <-
+  readRDS(here("Shared", "Results", "est_result_ls.rds")) %>%
+  rbindlist() %>%
+  dplyr::select(model, perform, field_col) %>%
+  unnest(perform) %>%
+  data.table()
+#' rename columns
+est_data <- est_data %>%
+  .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>%
+  #---field size---
+  .[, field_size := paste0(round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
+  .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>%
+  #---model name---
+  .[model == "brf", model := "BRF"] %>%
+  .[model == "rf", model := "RF"] %>%
+  .[model == "rf_perfect", model := "RF best"] %>%
+  .[model == "lm", model := "LM"] %>%
+  .[model == "ser_50", model := "SER"] %>%
+  .[, model := factor(model, levels = c("RF", "RF best", "BRF", "LM", "SER"))]
+#' mean and sd
+mean_data <- est_data %>%
+  .[, .(
+    profit = mean(profit) %>% round(2),
+    profit_sd = sd(profit) %>% round(2),
+    rmse_yield = mean(rmse_cv) %>% round(2),
+    rmse_yield_sd = sd(rmse_cv) %>% round(2),
+    rmse_eonr = mean(rmse_eonr) %>% round(2),
+    rmse_eonr_sd = sd(rmse_eonr) %>% round(2)
+  ),
+  by = c("field_size", "model")
+  ] %>%
+  .[order(field_size, model), ]
+#' load illustration data (single simulation)
+illus_data <-
+  readRDS(here("Shared", "Results", "illus_data.rds")) 
+
+# /*----------------------------------*/
+#' ##  create figures and tables
+# /*----------------------------------*/
+source(here("GitControlled", "Codes", "3_make_figures_tables.R"))
+```
+
+## Introduction
+
+- Prediction-oriented Machine Learning (ML) methods swept the field of optimal input management in precision agriculture.
+- Yield prediction is the ultimate goal.
+- Big success.
+- But unclear whether good yield prediction translates into farming profitability. 
+
+
+## Objective of This Study
+
+- Compare the performance of prediction-oriented ML methods and traditional linear regression approaches in terms of the profitability of estimated site-specific nitrogen recommendation.
+- Monte Carlo simulations
+- On-farm precision experimental data
+
+
+## Simulation Setting
+
+```{r true-pars-b2, fig.cap="Simulated field", out.width="20%", out.height="20%", echo=FALSE, cache=FALSE}
+include_graphics(here("GitControlled", "Graphs", "true_pars_b2.png"))
+```
+
+## True Yield Generation
+
+Corn yield response to nitrogen (N) fertilizer at each location $i$
+- Quadratic-plateau function:
+
+$$
+\begin{aligned}
+y_{i} = 
+  \begin{cases}
+  \alpha_{i} + \beta_{i} N + \gamma_{i} N^2 + \varepsilon_{i}, & N < \tau_{i} \\
+  \eta_{i}, & N \geq \tau_{i}
+  \end{cases}
+\end{aligned}
+$$
+- $\eta_i$: yield plateau
+- $\tau_i$: the N rate where yield reaches plateau
+
+
+## Field Characteristics Data
+
+- Spatial variability of true parameters ($\alpha, \tau, \eta$) are generated by Gaussian process
+- But producers do not observe them.
+- Only observe the decomposition of the true parameters ($X_1$):
+
+$$
+\begin{aligned}
+\alpha & = \alpha^1 + \alpha^2 \\
+\tau & = min\big(min(\tau^{1,1}, \tau^{1,2}), min(\tau^{2,1}, \tau^{2,2})\big) \\
+\eta & = min\big(min(\eta^{1,1}, \eta^{1,2}), min(\eta^{2,1}, \eta^{2,2})\big) 
+\end{aligned}
+$$
+- and two nuisance covariates ($X_2$) that are correlated with $\alpha$, $\tau$, and $\eta$:
+
+$$
+\phi^{\alpha, 1}, \phi^{\alpha, 2}, \phi^{\tau, 1}, \phi^{\tau, 2}, \phi^{\eta, 1}, \phi^{\eta, 2}
+$$
+
+
+## On-Farm Nitrogen Experiment
+
+- Five (5) nitrogen trial rates
+- Latin Square experimental design
+
+```{r N-trial-design, fig.cap="Simulated field", out.width="20%", out.height="20%", echo=FALSE, cache=FALSE}
+include_graphics(here("GitControlled", "Graphs", "Nrate_Latin Square Fixed_blocked.png"))
+```
+
+## Estimation Models
+
+Estimation of yield response functions and site-specific optimal nitrogen rates
+
+- Machine Learning:
+- Random Forest (RF)
+- Random Forest with best possible data (true $\alpha$, $\tau$, and $\eta$)(RF$_{b}$)
+- Boosted Regression Forest (BRF)
+
+- Traditional Regression:
+Linear Model OLS (LM)
+Spatial Error Model (SER)
+
+
+## Performance Measurements (1)
+
+- Yield prediction
+Root-mean-square error (RMSE) of out-of-sample predicted yield ($\hat{y}$):
+$$
+\begin{aligned}
+RMSE_y = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (\hat{y}_i - y_i)^2}
+\end{aligned}
+$$
+- Train data: One simulation round
+- Test data: Another simulation round
+
+
+## Performance Measurements (2)
+
+- Economically optimal nitrogen rate (EONR) prediction:
+Root-mean-square error (RMSE) of out-of-sample predicted EONR:
+
+$$
+\begin{aligned}
+RMSE_{N} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} (\hat{EONR}_i - EONR_i)^2}
+\end{aligned}
+$$
+
+
+## Performance Measurements (3)
+
+- Production profit: 
+Generated by applying the estimated EONR:
+
+$$
+\begin{aligned}
+\pi_i = p_{corn} f_i(\hat{EONR}_i) - p_N N_i - C
+\end{aligned}
+$$
+- $f_i()$: true yield response function
+
+
+## Results
+
+- Machine learning models perform well in yield prediction, 
+
+- but poor in EONR prediction
+
+- Traditional SER model generates the highest profit
+
+
+## An Example Simulation
+
+```{r single-simu-yield, fig.cap="Example simulation, yield.", fig.width=6, fig.height=7.5, echo=FALSE, cache=FALSE}
+single_simu_yield
+```
+
+```{r single-simu-EONR, fig.cap="Example simulation, EONR", fig.width=6, fig.height=7.5, echo=FALSE, cache=FALSE}
+single_simu_EONR
+```
+
+## 1,000 Simulations
+```{r comb-boxplot-large, fig.cap="The performances of different models", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
+comb_boxplot_large
+```
+
+
+## Illustrative Explanation
+
+Why good yield prediction does not necessarily mean good EONR prediction?
+
+```{r illustrate-explain, fig.cap="Estimated yield response curves at a specific location", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
+include_graphics(here("GitControlled", "Graphs", "802_yield.png"))
+```
+
+- Yield level prediction
+- Yield response (marginal effect, treatment effect) prediction $\Rightarrow$ More important
+
+## Illustrative Explanation (cont'd)
+
+Estimated vs. True treatment effect 
+
+```{r illustrate-treatment-effect, fig.cap="", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
+include_graphics(here("GitControlled", "Graphs", "treatment_sim_58.png"))
+```
+
+
+## Field Sizes
+
+```{r comb-boxplot-all, fig.cap="The performances of different models, large field.", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
+(comb_boxplot_large + ggtitle("(A) large field")) / (comb_boxplot_medium + ggtitle("(B) medium field")) / (comb_boxplot_small + ggtitle("(C) small field"))
+```
+
+- Machine learning models' performances catch up when field sizes decrease
+- BRF beats LM, and shrinks gaps to SER, for smaller fields
+- Performances of Traditional regression models are more sensitive to field sizes
+- Machine learning models are more suitable for small fields
+
+
+## Efficiency is Money
+
+- At the presence of unknown spatial heterogeneity,
+- SER model improve efficiency of LM estimates,
+- But it is only treated as a statistical property
+- Our simulation evidence: Statistical efficiency means more profitable EONR recommendations
+
+```{r, fig.cap="The performances of different models, large field.", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
+(comb_boxplot_large + ggtitle("(A) large field")) / (comb_boxplot_medium + ggtitle("(B) medium field")) / (comb_boxplot_small + ggtitle("(C) small field"))
+```
+
+## Conclusions
+
+- Machine learning models perform poor in EONR prediction compared to traditional regression models, despite their better yield prediction.
+
+- What matters more is estimating yield responses, not yield levels.
+
+- SER model can generate the most profitable EONR recommendations for normal-sized fields
+
+- Machine learning models are more useful for small fields.
+
+- More actively use SER model in contrast to LM in yield response estimation.
+
+
+
+
