@@ -2,5 +2,6 @@ Results/*
 Graphs/*.png
 .DS_Store
 Writing/*.docx
+Presentation/*.pptx
 Writing/*cache/*
 Writing/*files/*
