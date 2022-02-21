@@ -1,0 +1,8 @@
+
+****** Stat Group meeting 02/17/2022
+
+- Improve the method to generate the decomposed variables. (=> The results probably won't be changed much. But we need more solid approach to generate the data.)
+
+- RF has disadvantage here because of only 5 N rates. If there are 100 trial N rates, RF may perform much better. (=> But here in this paper we want to mimic the common analysis practices by current researchers. They use 5 N rates, and they use RF model.)
+
+- Be careful in the wording. Don't say RF model does not work. RF does not work well only in this context. Don't generalized the statement.
