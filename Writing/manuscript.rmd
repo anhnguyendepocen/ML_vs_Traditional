@@ -398,11 +398,11 @@ So, we should be cautious about the pitfall of machine learning models' good yie
 ```
 
 ```{r yield-curves, fig.cap="Estimated yield response curves at a specific location", fig.height=8.5, fig.width=7, echo=FALSE, cache=FALSE}
-include_graphics(here("GitControlled", "Graphs", "802_yield.png"))
+include_graphics(here("Shared", "Graphs", "802_yield.png"))
 ```
 
 ```{r treatment-effect, fig.cap="", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
-include_graphics(here("GitControlled", "Graphs", "treatment_sim_58.png"))
+include_graphics(here("Shared", "Graphs", "treatment_sim_58.png"))
 ```
 
 # Tables {-}

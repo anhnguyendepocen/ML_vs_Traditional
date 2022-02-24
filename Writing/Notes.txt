@@ -1,8 +1,29 @@
 
-****** Stat Group meeting 02/17/2022
-
+****** Stat Group meeting 02/17/2022 ******
 - Improve the method to generate the decomposed variables. (=> The results probably won't be changed much. But we need more solid approach to generate the data.)
 
 - RF has disadvantage here because of only 5 N rates. If there are 100 trial N rates, RF may perform much better. (=> But here in this paper we want to mimic the common analysis practices by current researchers. They use 5 N rates, and they use RF model.)
 
 - Be careful in the wording. Don't say RF model does not work. RF does not work well only in this context. Don't generalized the statement.
+
+
+****** Taro comments 02/20/2022 ******
+- too many files to commit. delete those files (pictures)
+- remove the color in the scatter plots. not necessary.
+- create the table like the ones you made for our experiment paper
+1. percentage each model comes at the top in terms of yield prediction
+2. percentage each model comes at the top in terms of EONR
+3. the same for profit
+we should make a figure of the average ratio to the true EONR for each model
+For a given simulation round and model,
+1. For each location, calculate the ratio of estimated EONR to the true EONR (so underestimation results in the ratio lower than 1), and then average them across locations. After this you will have a single number as the average ratio for this particular simulation round and model
+2. Repeat the above for all the simulation rounds. After this, you will have 1000 ratios for each model.
+3. Create a density plot of the ratio color-differentiated by model
+- Run pair-wise t-test of yield, EONR, and profitability across models
+e.g., pairwise t-test of yield RMSE between RF and SER
+
+
+
+
+
+
