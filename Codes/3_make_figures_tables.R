@@ -258,7 +258,7 @@ for(s in unique(gdata_long$fsize)){
 # fig.cap = "Illustration, single simulation"
 
 sim_example = 58
-gdata <- illus_data[sim==sim_example, ]
+gdata <- aunit_data[sim==sim_example, ]
 mean_dt <- gdata %>% 
     .[, .(
         rmse_yield = mean((yield - yield_hat)^2, na.rm = TRUE) %>% sqrt() %>% round(1),
@@ -277,6 +277,20 @@ single_simu_yield <-
 #* predicted vs true EONR
 single_simu_EONR <- 
     source(here("GitControlled", "Codes", "Modules", "figure_single_simu_EONR.R"))$value
+
+
+
+# /*===========================================================
+#' # Ratio to True EONR 
+# /*===========================================================
+# fig.id = "eonr-ratio-kernel",
+# fig.cap = ""
+
+gdata <- aunit_data
+#------ kernel density ------#
+source(here("GitControlled","Codes","Modules","figure_eonr_ratio_kernel.R"))
+eonr_ratio_kernel <- g_plot
+
 
 
 #
