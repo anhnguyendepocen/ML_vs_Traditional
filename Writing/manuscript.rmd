@@ -125,7 +125,7 @@ est_data <-
   rbindlist() %>%
   dplyr::select(model, perform, field_col) %>%
   unnest(perform) %>%
-  data.table() %>% 
+  data.table() %>%
   .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>%
   #---field size---
   .[, field_size := paste0(round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
@@ -154,7 +154,7 @@ mean_data <- est_data %>%
 
 #' aunit level data
 aunit_data <-
-    readRDS(here("Shared", "Results", "aunit_data.rds"))
+  readRDS(here("Shared", "Results", "aunit_data.rds"))
 
 # /*----------------------------------*/
 #' ##  create figures and tables
@@ -357,17 +357,17 @@ How robust are the results to different field sizes? Figure \@ref(fig:comb-boxpl
 - The true yield generating process used in our simulation, quadratic-plateau function, is the most established corn yield response pattern demonstrated in the agronomy literature. But there are also some other corn response functional forms found in existing studies. In case somebody criticize us on this point, we also tried several other corn yield response functions: Mitscherlich‐Baul, quadratic, ...
 
 
-
 `r run_pagebreak()`
 
 # Conclusions
 
 So, we should be cautious about the pitfall of machine learning models' good yield predicting performances. Almost all existing studies use yield prediction performance as the measure of yield estimation models. This can be very misleading and cost producers a lot when it is used in developing input management recommendations, since models with good yield prediction can have bad profit at the same time.
 
-
 `r run_pagebreak()`
 
 # References
+
+<div id="refs"></div>
 
 `r run_pagebreak()`
 
@@ -395,108 +395,9 @@ include_graphics(here("Shared", "Graphs", "treatment_sim_58.png"))
 eonr_ratio_kernel
 ```
 
-# Tables {-}
+# Appendix {-}
 
-```{r count-table, echo=FALSE, cache=FALSE}
-prt_table <- est_data %>% 
-    .[order(sim, model), ] %>% 
-    .[, y := (rmse_cv==min(rmse_cv)) %>% as.numeric(), by = .(sim, field_size)] %>% 
-    .[, eonr := (rmse_eonr==min(rmse_eonr)) %>% as.numeric(), by = .(sim, field_size)] %>% 
-    .[, pi := (profit==max(profit)) %>% as.numeric(), by = .(sim, field_size)] %>% 
-    .[, .(`yield` = (sum(y)/.N*100) %>% round(2),
-          `EONR` = (sum(eonr)/.N*100) %>% round(2),
-          `profit` = (sum(pi)/.N*100) %>% round(2)), by = .(field_size, model)]
-# datasummary(
-#         field_size * (yield + EONR + profit) ~ factor(model) * (Mean), 
-#         data = count_table,
-#         title = 'Percentage (%) of each model being the best-performing among the five models in a single simulation round',
-#         notes = c('A note at the bottom of the table.')
-#     )
-count_table <- prt_table %>% 
-    #=== Wide to Long: melt()
-    melt(id.vars = c('field_size','model')) %>% 
-    #=== Long to Wide: dcast()
-    dcast(field_size + variable ~ model, value.var = "value")
-knitr::kable(count_table, format = "markdown",
-             caption = "Percentage (%) of each model being the best-performing among the five models in a single simulation round")
-```
-
-```{r pair-table-yield, echo=FALSE, cache=FALSE}
-model_list <- unique(est_data$model) %>% .[order(.)] %>% as.character()
-pair_df <- data.frame()
-for(i in 1:length(model_list)){
-    for(j in 1:length(model_list)){
-        pi <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[i]) %>% 
-            pull(rmse_cv)
-        pj <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[j]) %>% 
-            pull(rmse_cv)
-        pv <- t.test(pi, 
-                     pj, 
-                     paired = TRUE)
-        
-        pair_df[model_list[i], model_list[j]] <- 
-            round(pv$estimate, 2)
-        pair_df[as.character(i), model_list[j]] <- 
-            paste0("(", round(pv$p.value, 3), ")")
-    }
-}
-pair_df[is.na(pair_df)] <- ""
-knitr::kable(pair_df, format = "markdown",
-             caption = "Pairwise t-test of predicted yield RMSE between models, Large field (37.3 ha), values are the difference in RMSE (row vs. index) (kg/ha), p-values in parenthese")
-```
-
-```{r pair-table-eonr, echo=FALSE, cache=FALSE}
-model_list <- unique(est_data$model) %>% .[order(.)] %>% as.character()
-pair_df <- data.frame()
-for(i in 1:length(model_list)){
-    for(j in 1:length(model_list)){
-        pi <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[i]) %>% 
-            pull(rmse_eonr)
-        pj <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[j]) %>% 
-            pull(rmse_eonr)
-        pv <- t.test(pi, 
-                     pj, 
-                     paired = TRUE)
-        
-        pair_df[model_list[i], model_list[j]] <- 
-            round(pv$estimate, 2)
-        pair_df[as.character(i), model_list[j]] <- 
-            paste0("(", round(pv$p.value, 3), ")")
-    }
-}
-pair_df[is.na(pair_df)] <- ""
-knitr::kable(pair_df, format = "markdown",
-             caption = "Pairwise t-test of predicted EONR RMSE between models, Large field (37.3 ha), values are the difference in RMSE (row vs. index) (kg/ha), p-values in parenthese")
-```
-
-```{r pair-table-profit, echo=FALSE, cache=FALSE}
-model_list <- unique(est_data$model) %>% .[order(.)] %>% as.character()
-pair_df <- data.frame()
-for(i in 1:length(model_list)){
-    for(j in 1:length(model_list)){
-        pi <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[i]) %>% 
-            pull(profit)
-        pj <- est_data %>% 
-            filter(field_size=="37.3 ha", model==model_list[j]) %>% 
-            pull(profit)
-        pv <- t.test(pi, 
-                     pj, 
-                     paired = TRUE)
-        
-        pair_df[model_list[i], model_list[j]] <- 
-            round(pv$estimate, 2)
-        pair_df[as.character(i), model_list[j]] <- 
-            paste0("(", round(pv$p.value, 3), ")")
-    }
-}
-pair_df[is.na(pair_df)] <- ""
-knitr::kable(pair_df, format = "markdown",
-             caption = "Pairwise t-test of profits between models, Large field (37.3 ha), values are the difference in profits (row vs. index) (kg/ha), p-values in parenthese")
+```{r, child = "appendix.Rmd"}
 ```
 
 

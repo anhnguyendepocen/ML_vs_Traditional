@@ -1,0 +1,159 @@
+# Pairwise t-test of yield RMSE, EONR RMSE, and profit between models {-}
+```{r count-table, echo=FALSE, cache=FALSE}
+
+prt_table <-
+  est_data %>%
+  .[order(sim, model), ] %>%
+  .[, y := (rmse_cv == min(rmse_cv)), by = .(sim, field_size)] %>%
+  .[, eonr := (rmse_eonr == min(rmse_eonr)), by = .(sim, field_size)] %>%
+  .[, profit := (profit == max(profit)), by = .(sim, field_size)] %>%
+  .[,
+    .(
+      yield = (mean(y) * 100) %>% round(2),
+      EONR = (mean(eonr) * 100) %>% round(2),
+      profit = (mean(profit) * 100) %>% round(2)
+    ),
+    by = .(field_size, model)
+  ]
+
+#* create a table
+count_table <-
+  prt_table %>%
+  # === Wide to Long: melt()
+  melt(id.vars = c("field_size", "model")) %>%
+  # === Long to Wide: dcast()
+  dcast(field_size + variable ~ model, value.var = "value")
+
+#* displary the table
+knitr::kable(count_table,
+  format = "markdown",
+  caption = "Percentage (%) of each model being the best-performing among the five models in a single simulation round"
+)
+```
+
+```{r run-pairwise-test, inlcude = FALSE}
+est_data_by_model_1 <-
+  est_data %>%
+  arrange(sim) %>%
+  nest_by(model, field_col) %>%
+  mutate(data = list(
+    data.table(data)
+  )) %>%
+  setnames(names(.), paste0(names(.), "_1"))
+
+est_data_by_model_2 <-
+  copy(est_data_by_model_1) %>%
+  setnames(names(.), gsub("_1", "_2", names(.)))
+
+source(here("GitControlled/Codes/Functions/R/expand_grid_df.R"))
+
+test_data <-
+  expand_grid_df(est_data_by_model_1, est_data_by_model_2) %>%
+  #* different models
+  filter(model_1 != model_2) %>%
+  #* same field size
+  filter(field_col_1 == field_col_2) %>%
+  mutate(yield_pt = list(
+    t.test(
+      data_1[, rmse_cv],
+      data_2[, rmse_cv],
+      paired = TRUE
+    )
+  )) %>%
+  mutate(eonr_pt = list(
+    t.test(
+      data_1[, rmse_eonr],
+      data_2[, rmse_eonr],
+      paired = TRUE
+    )
+  )) %>%
+  mutate(pi_pt = list(
+    t.test(
+      data_1[, profit],
+      data_2[, profit],
+      paired = TRUE
+    )
+  ))
+```
+
+```{r pair-table-yield, tab.cap = "Pairwise t-test of predicted yield RMSE between models"}
+
+test_data %>%
+  select(field_col_1, model_1, model_2, yield_pt) %>%
+  mutate(
+    yield_pt_txt =
+      paste0(
+        round(yield_pt$estimate, digits = 2), " (",
+        round(yield_pt$statistic, digits = 2), ")"
+      )
+  ) %>%
+  data.table() %>%
+  dcast(field_col_1 + model_1 ~ model_2, value.var = "yield_pt_txt") %>%
+  .[model_1 != "SER", ] %>%
+  .[, RF := NULL] %>%
+  .[model_1 == "BRF", `:=`(RF_b = NA)] %>%
+  .[model_1 == "OLS", `:=`(BRF = NA, RF_b = NA)] %>%
+  setnames(c("field_col_1", "model_1"), c("Field Size", "Model\\Model")) %>%
+  flextable() %>%
+  merge_v(j = 1) %>%
+  hline(i = c(4, 8)) %>%
+  autofit() %>%
+  fix_border_issues() %>%
+  align(j = c(1, 2), align = "center")
+```
+
+
+```{r pair-table-eonr, tab.cap = "Pairwise t-test of predicted EONR RMSE between models"}
+
+test_data %>%
+  select(field_col_1, model_1, model_2, eonr_pt) %>%
+  mutate(
+    eonr_pt_txt =
+      paste0(
+        round(eonr_pt$estimate, digits = 2), " (",
+        round(eonr_pt$statistic, digits = 2), ")"
+      )
+  ) %>%
+  data.table() %>%
+  dcast(field_col_1 + model_1 ~ model_2, value.var = "eonr_pt_txt") %>%
+  .[model_1 != "SER", ] %>%
+  .[, RF := NULL] %>%
+  .[model_1 == "BRF", `:=`(RF_b = NA)] %>%
+  .[model_1 == "OLS", `:=`(BRF = NA, RF_b = NA)] %>%
+  setnames(c("field_col_1", "model_1"), c("Field Size", "Model\\Model")) %>%
+  flextable() %>%
+  merge_v(j = 1) %>%
+  hline(i = c(4, 8)) %>%
+  autofit() %>%
+  fix_border_issues() %>%
+  align(j = c(1, 2), align = "center")
+
+# Note: values are the difference in RMSE (row vs. index) (kg/ha), p-values in parenthese
+
+```
+
+```{r pair-table-profit, tab.cap = "Pairwise t-test of profits between models"}
+
+test_data %>%
+  select(field_col_1, model_1, model_2, pi_pt) %>%
+  mutate(
+    pi_pt_txt =
+      paste0(
+        round(pi_pt$estimate, digits = 2), " (",
+        round(pi_pt$statistic, digits = 2), ")"
+      )
+  ) %>%
+  data.table() %>%
+  dcast(field_col_1 + model_1 ~ model_2, value.var = "pi_pt_txt") %>%
+  .[model_1 != "SER", ] %>%
+  .[, RF := NULL] %>%
+  .[model_1 == "BRF", `:=`(RF_b = NA)] %>%
+  .[model_1 == "OLS", `:=`(BRF = NA, RF_b = NA)] %>%
+  setnames(c("field_col_1", "model_1"), c("Field Size", "Model\\Model")) %>%
+  flextable() %>%
+  merge_v(j = 1) %>%
+  hline(i = c(4, 8)) %>%
+  autofit() %>%
+  fix_border_issues() %>%
+  align(j = c(1, 2), align = "center")
+```
