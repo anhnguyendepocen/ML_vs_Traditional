@@ -1,5 +1,5 @@
 # Pairwise t-test of yield RMSE, EONR RMSE, and profit between models {-}
-```{r count-table, echo=FALSE, cache=FALSE}
+```{r count-table, tab.cap = "Percentage (%) each model performs the best for yield prediction, EONR prediction, and profit", echo=FALSE, cache=FALSE}
 
 prt_table <-
   est_data %>%
@@ -13,22 +13,28 @@ prt_table <-
       EONR = (mean(eonr) * 100) %>% round(2),
       profit = (mean(profit) * 100) %>% round(2)
     ),
-    by = .(field_size, model)
+    by = .(field_size, field_col, model)
   ]
 
 #* create a table
 count_table <-
   prt_table %>%
   # === Wide to Long: melt()
-  melt(id.vars = c("field_size", "model")) %>%
+  melt(id.vars = c("field_size", "field_col", "model")) %>%
   # === Long to Wide: dcast()
-  dcast(field_size + variable ~ model, value.var = "value")
+  dcast(field_size + field_col + variable ~ model, value.var = "value") %>%
+  .[variable == "yield", variable := "Yield"] %>%
+  .[variable == "profit", variable := "Profit"] %>%
+  .[order(field_col), ] %>%
+  .[, field_col := NULL] %>%
+  setnames(c("field_size", "variable"), c("Field Size", "Measurement"))
 
-#* displary the table
-knitr::kable(count_table,
-  format = "markdown",
-  caption = "Percentage (%) of each model being the best-performing among the five models in a single simulation round"
-)
+flextable(count_table) %>%
+  merge_v(j = 1) %>%
+  hline(i = c(3, 6)) %>%
+  autofit() %>%
+  fix_border_issues() %>%
+  align(j = c(1, 2), align = "center")
 ```
 
 ```{r run-pairwise-test, inlcude = FALSE}
