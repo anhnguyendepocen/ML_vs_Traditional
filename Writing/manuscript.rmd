@@ -329,7 +329,7 @@ It is noteworthy that RF model performed especially poor in EONR prediction beca
 Finally, while the ML methods perform worse than LM and SER on average, it does not mean they perform worse in terms of profitability in every single simualtion round. Figure \@ref() shows the percentage each model performed the best in yield prediciton (panel a), EONR prediciton (panel b), and profitability (panel c). 
 
 
-## Insights into the divergence in yield and EONR prediction 
+## Insights into the divergence in yield and EONR prediction performance
 
 It may sound counterintuitive that better yield prediction does not necessarily lead to better EONR prediction and economic performance. Here, we present an illustrative example to provide some explanations for this divergence between yield and EONR predictions. 
 
@@ -341,10 +341,10 @@ Severe underestimation of the impact of nitrogen on yield is not just for the si
 
 ## OLS vs. SER: Statistical efficiency is money 
 
-It is also interesting to compare the OLS and SER results. It is well-established that SER is more statistically efficient than simple OLS in the presence of unknown spatial data autocorrrelation, which is a very common in OFPE data. This advantage of SER does not seem to have received much attention as it is just a statistical property, economist have a tendency to focus on unbiasedness and consistency issues more than efficiency. However, in the context of site-specific EONR estiamtion, statistical efficiency means money. The more accurately estimated coefficients are, the more accurately site-specific EONRs are estimated, leading to a higher profit. While \@ref(anselin) bluh bluh, they did not do it right. Our results show that improving statistical efficiency by taking into account the spatial autocorrelation of the error term can lead to a substantial increase in profit by VRA. The profit of SER model is higher than OLS model by $\$$`r (mean_data[field_size=="37.3 ha"&model=="SER", profit] - mean_data[field_size=="37.3 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$, $\$$`r (mean_data[field_size=="18.7 ha"&model=="SER", profit] - mean_data[field_size=="18.7 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$, and $\$$`r (mean_data[field_size=="9.3 ha"&model=="SER", profit] - mean_data[field_size=="9.3 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$ for large, medium, and small fields, respectively. To our knowledge,
+It is also interesting to compare the OLS and SER results. It is well-established that SER is more statistically efficient than simple OLS in the presence of unknown spatial data autocorrrelation, which is a very common in OFPE data. This advantage of SER does not seem to have received much attention as it is just a statistical property, economist have a tendency to focus on unbiasedness and consistency issues more than efficiency. However, in the context of site-specific EONR estiamtion, statistical efficiency means money. The more accurately estimated coefficients are, the more accurately site-specific EONRs are estimated, leading to a higher profit. While \@ref(anselin) bluh bluh, they did not do it right. Our results show that improving statistical efficiency by taking into account the spatial autocorrelation of the error term can lead to a substantial increase in profit by VRA. The profit of SER model is higher than OLS model by $\$$`r (mean_data[field_size=="37.3 ha"&model=="SER", profit] - mean_data[field_size=="37.3 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$, $\$$`r (mean_data[field_size=="18.7 ha"&model=="SER", profit] - mean_data[field_size=="18.7 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$, and $\$$`r (mean_data[field_size=="9.3 ha"&model=="SER", profit] - mean_data[field_size=="9.3 ha"&model=="OLS", profit]) %>% round(2)` ha$^{-1}$ for large, medium, and small fields, respectively. To our knowledge, there is no 
 
 
-## Field sizes
+## Field size
 
 How robust are the results to different field sizes? Figure \@ref(fig:comb-boxplot-all) panels (B) and (C) showed the simulation results for medium (18.7 ha) and small (9.3 ha) sized fields.
 
@@ -363,7 +363,6 @@ How robust are the results to different field sizes? Figure \@ref(fig:comb-boxpl
 # Conclusions
 
 So, we should be cautious about the pitfall of machine learning models' good yield predicting performances. Almost all existing studies use yield prediction performance as the measure of yield estimation models. This can be very misleading and cost producers a lot when it is used in developing input management recommendations, since models with good yield prediction can have bad profit at the same time.
-
 
 
 `r run_pagebreak()`
@@ -385,11 +384,11 @@ So, we should be cautious about the pitfall of machine learning models' good yie
 ```
 
 ```{r yield-curves, fig.cap="Estimated yield response curves at a specific location", fig.height=8.5, fig.width=7, echo=FALSE, cache=FALSE}
-include_graphics(here("GitControlled", "Graphs", "802_yield.png"))
+include_graphics(here("Shared/Graphs/802_yield.png"))
 ```
 
 ```{r treatment-effect, fig.cap="", echo=FALSE, fig.height=8.5, fig.width=7, cache=FALSE}
-include_graphics(here("GitControlled", "Graphs", "treatment_sim_58.png"))
+include_graphics(here("Shared/Graphs/treatment_sim_58.png"))
 ```
 
 # Tables {-}
