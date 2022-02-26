@@ -40,7 +40,7 @@ fs::dir_ls(here("GitControlled", "Codes", "Functions", "R"), full.names = TRUE) 
 # load results data
 # -----------------
 est_data_ls <-
-    readRDS(here("Shared/Results/est_result_ls_eonr_100.rds")) %>% 
+    readRDS(here("Shared", "Results", "est_result_ls.rds")) %>% 
     print()
 
 # ----------------------
@@ -54,7 +54,7 @@ est_data <- est_data_ls %>%
     .[, .(field_col, model, sim, profit, rmse_train, rmse_cv, rmse_eonr)] %>% 
     #---field size---
     .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
-    .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>% 
+    .[, field_size := factor(field_size, levels = c("37.3 ha", "18.7 ha", "9.3 ha"))] %>% 
     #---model name---
     .[model=="brf", model := "BRF"] %>%
     .[model=="rf", model := "RF"] %>%
@@ -183,7 +183,6 @@ ggsave(file = here('GitControlled/Graphs/profits_kernel.png'),
 
 
 
-
 #' /*=========================================================================*/
 #' /*                         Illustrative Explanation                        */
 #' /*=========================================================================*/
@@ -204,7 +203,7 @@ field_data <-
 
 #* simulation results
 est_data_ls <-
-    readRDS(here("Shared/Results/est_result_ls_eonr_100.rds")) %>% 
+    readRDS(here("Shared", "Results", "est_result_ls.rds")) %>% 
     print()
 
 
@@ -243,7 +242,7 @@ pre_data <- est_data_ls[[sc_i]] %>%
     data.table() %>% 
     #---field size---
     .[, field_size := paste0( round(field_col * 72 * 6^2 / 10000, 1), " ha")] %>%
-    .[, field_size := factor(field_size, levels = c("9.3 ha", "18.7 ha", "37.3 ha"))] %>% 
+    .[, field_size := factor(field_size, levels = c("37.3 ha", "18.7 ha", "9.3 ha"))] %>% 
     #---model name---
     .[model=="brf", model := "BRF"] %>%
     .[model=="rf", model := "RF"] %>%
@@ -270,7 +269,7 @@ EONR_df <- field_pars %>%
     .[, .(EONR = mean(opt_N)), by = .(sim, aunit_id)]
 
 #* merge all aunit-level data
-illus_data <- pre_data %>% 
+aunit_data <- pre_data %>% 
     left_join(., EONR_df, by = c("sim", "aunit_id")) %>% 
     left_join(., reg_data, by = c("sim", "aunit_id")) %>% 
     #--- retrieve the out-of-sample predicted yield ---#
@@ -279,14 +278,14 @@ illus_data <- pre_data %>%
     print()
 
 #* save illustration data (aunit)
-saveRDS(illus_data, here("Shared", "Results", "illus_data.rds"))
+saveRDS(aunit_data, here("Shared", "Results", "aunit_data.rds"))
 
 
 # -----------------------------------
 # single simulation illustration (aunit-level data)
 # -----------------------------------
 sim_example = 58
-gdata <- illus_data[sim==sim_example, ]
+gdata <- aunit_data[sim==sim_example, ]
 mean_dt <- gdata %>% 
     .[, .(
         rmse_yield = mean((yield - yield_hat)^2, na.rm = TRUE) %>% sqrt() %>% round(1),
@@ -300,18 +299,36 @@ mean_dt <- gdata %>%
     print()
 
 #* predicted vs true yield
-source(here("GitControlled/Codes/Modules/figure_single_simu_yield.R"))
-ggsave(file = here(paste0("GitControlled/Graphs/single_simu_yield.png")),
+source(here("GitControlled", "Codes", "Modules", "figure_single_simu_yield.R"))
+ggsave(file = here(paste0("Shared", "Graphs", "single_simu_yield.png")),
        height=7.5,width=6.5)
 
 #* predicted vs true EONR
-source(here("GitControlled/Codes/Modules/figure_single_simu_EONR.R"))
-ggsave(file = here(paste0("GitControlled/Graphs/single_simu_EONR.png")),
+source(here("GitControlled", "Codes", "Modules", "figure_single_simu_EONR.R"))
+ggsave(file = here(paste0("Shared", "Graphs", "single_simu_EONR.png")),
        height=7.5,width=6.5)
 
 
 
-#
+
+#' /*=========================================================================*/
+#' /*                           Ratio to True EONR                            */
+#' /*=========================================================================*/
+
+# ----------------------
+# aunit level data
+# ----------------------
+aunit_data <-
+    readRDS(here("Shared", "Results", "aunit_data.rds")) %>% 
+    print()
+
+# ---------------
+# kernel density
+# ---------------
+gdata <- aunit_data
+source(here("GitControlled","Codes","Modules","figure_eonr_ratio_kernel.R"))
+ggsave(file = here("Shared","Graphs","eonr_ratio_kernel.png"),
+       height=4.5,width=6.5)
 
 
 
@@ -395,42 +412,62 @@ ggplot() +
 #' /*=========================================================================*/
 
 #*******************************************************************************
-# load estimation results
-est_result_ls <-
-    readRDS(here("Results/est_result_ls_100.rds")) %>% 
-    rbindlist()
-
-dt <- est_result_ls %>% 
-    filter(model %in% c("brf", "lm", "rf", "ser_500")) %>%
-    mutate(
-        model = replace(model, model=="ser_500", "ser")
-    ) %>%
-    dplyr::select(model, perform, field_col) %>% 
-    unnest(perform) %>% 
-    data.table()
-
-perf_dt <- dt %>% 
+perf_dt <- est_data %>% 
     .[order(sim, model), ] %>% 
-    .[, y := (rmse_cv==min(rmse_cv)) %>% as.numeric(), by = .(sim, field_col)] %>% 
-    .[, p := (profit==max(profit)) %>% as.numeric(), by = .(sim, field_col)] %>% 
-    .[, yp := y * p] %>% 
-    .[, .(n_y = sum(y),
-          n_p = sum(p),
-          n_yp = sum(yp)), by = .(field_col, model)] %>% 
+    .[, y := (rmse_cv==min(rmse_cv)) %>% as.numeric(), by = .(sim, field_size)] %>% 
+    .[, eonr := (rmse_eonr==min(rmse_eonr)) %>% as.numeric(), by = .(sim, field_size)] %>% 
+    .[, pi := (profit==max(profit)) %>% as.numeric(), by = .(sim, field_size)] %>% 
+    .[, .(`yield` = (sum(y)/.N*100) %>% round(2),
+          `EONR` = (sum(eonr)/.N*100) %>% round(2),
+          `profit` = (sum(pi)/.N*100) %>% round(2)), by = .(field_size, model)] %>% 
     print()
-
-perf_dt <- perf_dt %>% 
-    dcast(field_col ~ model, value.var = c("n_y", "n_yp")) %>% 
-    dplyr::select(field_col, 
-                  n_y_rf, n_yp_rf,
-                  n_y_brf, n_yp_brf,
-                  n_y_lm, n_yp_lm,
-                  n_y_ser, n_yp_ser) %>% 
+prt_table <- perf_dt %>% 
+    datasummary(
+        field_size * (yield + EONR + profit) ~ factor(model) * (Mean), 
+        data = .
+    )
+prt_table <- perf_dt %>% 
+    #=== Wide to Long: melt()
+    melt(id.vars = c('field_size','model')) %>% 
+    #=== Long to Wide: dcast()
+    dcast(field_size + variable ~ model, value.var = "value") %>% 
     print()
-
-write.csv(perf_dt, here("Results/perf_dt_500.csv"))
+    
 #*******************************************************************************
-#*
+
+
+
+#' /*=========================================================================*/
+#' /*                              Pairwise t-test                            */
+#' /*=========================================================================*/
+
+#*******************************************************************************
+gdata <- est_data %>%
+    .[field_size=="37.3 ha",] %>% 
+    print()
+model_list <- unique(est_data$model) %>% .[order(.)] %>% as.character()
+
+pair_df <- data.frame()
+
+for(i in 1:length(model_list)){
+    for(j in 1:length(model_list)){
+        pi <- gdata[model==model_list[i], rmse_eonr]
+        pj <- gdata[model==model_list[j], rmse_eonr]
+        pv <- t.test(pi, pj, paired = TRUE)
+        
+        pair_df[model_list[i], model_list[j]] <- 
+            round(pv$estimate, 2)
+        pair_df[as.character(i), model_list[j]] <- 
+            round(pv$p.value, 3)*(-1)
+    }
+}
+pair_df[is.na(pair_df)] <- ""
+print(pair_df)
+#*******************************************************************************
+
+
+
+
 
 
 
